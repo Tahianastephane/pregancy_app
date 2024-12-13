@@ -1,0 +1,7 @@
+{
+  "name": "pregnancy",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "react-vite"
+}
