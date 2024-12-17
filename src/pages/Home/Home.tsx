@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { IonPage, IonHeader, IonToolbar, IonTitle, IonItem, IonLabel, IonIcon, IonRefresher, IonRefresherContent, IonFabButton, IonMenu, IonContent, IonList, IonMenuButton, IonButtons, IonTabBar, IonTabButton, IonToast, IonModal, IonButton, IonBadge, IonAvatar } from '@ionic/react';
+import { IonPage, IonHeader, IonToolbar, IonTitle, IonItem, IonLabel, IonIcon, IonRefresher, IonRefresherContent, IonFabButton, IonMenu, IonContent, IonList, IonMenuButton, IonButtons, IonTabBar, IonTabButton, IonToast, IonModal, IonButton, IonBadge, IonAvatar, IonMenuToggle } from '@ionic/react';
 import { useHistory } from 'react-router-dom';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { pencil, trash, add, chatbox, colorPalette, home, statsChart, megaphone, notifications, checkmarkCircle } from 'ionicons/icons';
+import { pencil, trash, add, chatbox, colorPalette, home, statsChart, megaphone, notifications, checkmarkCircle, calendar, time } from 'ionicons/icons';
 import { addMonths, isBefore } from 'date-fns';
+import { decompressData ,compressData } from '../utils/storageUtils';
+import * as pako from 'pako';
+
 
 const Home: React.FC = () => {
   const [patients, setPatients] = useState<any[]>([]);
@@ -15,23 +18,194 @@ const Home: React.FC = () => {
   const [newNotificationsCount, setNewNotificationsCount] = useState(0);
   const history = useHistory();
 
-   // Fonction pour récupérer les patients stockés et les trier par date d'ajout
-   const getPatients = async () => {
-    try {
-      const storedPatients = await AsyncStorage.getItem('patients');
-      if (storedPatients) {
-        const parsedPatients = JSON.parse(storedPatients);
-        // Trier les patients par date d'ajout (assurez-vous que `dateAjout` existe dans les données de chaque patient)
-        const sortedPatients = parsedPatients.sort((a: any, b: any) => new Date(b.dateAjout).getTime() - new Date(a.dateAjout).getTime());
-        setPatients(sortedPatients);
-      } else {
-        setPatients([]);
-      }
-    } catch (error) {
-      console.error('Erreur de récupération des patients:', error);
+  
+
+  const base64ToUint8Array = (base64: string): Uint8Array => {
+    const binaryString = atob(base64);  // Décodage base64 en chaîne binaire
+    const byteArray = new Uint8Array(binaryString.length);  // Création d'un tableau d'octets
+    for (let i = 0; i < binaryString.length; i++) {
+      byteArray[i] = binaryString.charCodeAt(i);  // Remplissage du tableau d'octets
     }
+    return byteArray;
+  };
+  
+  const isValidBase64 = (str: string) => {
+    const base64Pattern = /^[A-Za-z0-9+/=]+$/;
+    return base64Pattern.test(str);
   };
 
+  const getPatients = async () => {
+    try {
+      const storedPatients = await AsyncStorage.getItem('patients');
+      console.log("Données récupérées de AsyncStorage : ", storedPatients);
+  
+      if (storedPatients) {
+        if (isValidBase64(storedPatients)) {
+          // Convertir base64 en Uint8Array
+          const byteArray = base64ToUint8Array(storedPatients);
+  
+          // Décompresser les données
+          const decompressedData = pako.inflate(byteArray, { to: 'string' });
+  
+          // Convertir les données décompressées en JSON
+          const patients = JSON.parse(decompressedData);
+          console.log('Patients décompressés:', patients);
+  
+          // Mettre à jour l'état des patients
+          setPatients(patients);
+        } else {
+          console.error("Données base64 incorrectes.");
+          setPatients([]);  // Réinitialiser les patients en cas de format incorrect
+        }
+      } else {
+        console.log("Aucun patient trouvé.");
+        setPatients([]);  // Aucun patient trouvé dans AsyncStorage
+      }
+    } catch (error) {
+      console.error("Erreur de récupération des patients:", error);
+      setPatients([]);  // Réinitialiser en cas d'erreur
+    }
+  };
+  
+  
+  // Fonction pour sauvegarder les patients
+  const savePatients = async (patients: any[]) => {
+    try {
+      // Convertir les patients en JSON string
+      const jsonString = JSON.stringify(patients);
+  
+      // Compresser les données JSON sans l'option 'to'
+      const compressedData = pako.deflate(jsonString);
+  
+      // Convertir en base64 pour le stockage
+      const base64String = btoa(String.fromCharCode(...compressedData));
+  
+      // Sauvegarder en AsyncStorage
+      await AsyncStorage.setItem('patients', base64String);
+      console.log('Patients enregistrés en base64');
+    } catch (error) {
+      console.error("Erreur lors de l'enregistrement des patients:", error);
+    }
+  };
+  
+  
+  
+  const addPatient = async (newPatient: any) => {
+    const updatedPatients = [...patients, newPatient];
+    setPatients(updatedPatients);
+    await savePatients(updatedPatients);
+  };
+
+  
+  
+
+  // Fonction pour récupérer les patients
+  const retrievePatients = async () => {
+    try {
+      const storedPatients = await AsyncStorage.getItem('patients');
+      console.log("Contenu de storedPatients avant parsing:", storedPatients);
+  
+      if (storedPatients) {
+        try {
+          if (isValidBase64(storedPatients)) {
+            const patients = decompressData(storedPatients);
+            return patients;
+          } else {
+            const patients = JSON.parse(storedPatients);
+            return patients;
+          }
+        } catch (parseError) {
+          console.error("Erreur de parsing des patients:", parseError);
+          setStorageMessage('Erreur de parsing des patients.');
+        }
+      }
+    } catch (error) {
+      console.error("Erreur lors de la récupération des patients:", error);
+      setStorageMessage('Échec de la récupération des patients.');
+    }
+    return [];
+  };
+  
+  
+const clearStorage = async () => {
+  try {
+    // Supprimer toutes les données du storage
+    await AsyncStorage.clear();  
+    console.log('Le stockage a été vidé.');
+
+    // Vérifier si les données sont bien supprimées
+    const value = await AsyncStorage.getItem('patients');
+    if (value === null) {
+      console.log('Toutes les données du storage ont été supprimées avec succès.');
+    } else {
+      console.log('Le stockage n\'a pas été vidé correctement.');
+    }
+  } catch (error) {
+    console.error('Erreur lors de la suppression du stockage:', error);
+  }
+};
+
+  // Fonction pour réinitialiser les patients en cas de corruption des données
+  const clearPatients = async () => {
+    try {
+      await AsyncStorage.removeItem('patients');
+      console.log("Les données des patients ont été supprimées de AsyncStorage.");
+      setPatients([]); // Mettre à jour l'état des patients à un tableau vide
+    } catch (error) {
+      console.error("Erreur lors de la suppression des données:", error);
+    }
+  };
+  
+
+  // Fonction pour supprimer un patient
+  const deletePatient = async (patient: any) => {
+    try {
+      const storedPatients = await AsyncStorage.getItem('patients');
+      let patients = [];
+  
+      if (storedPatients) {
+        if (isValidBase64(storedPatients)) {
+          // Décompresser les données si elles sont en base64
+          const byteArray = base64ToUint8Array(storedPatients);
+          const decompressedData = pako.inflate(byteArray, { to: 'string' });
+          patients = JSON.parse(decompressedData);
+        } else {
+          patients = JSON.parse(storedPatients);
+        }
+  
+        // Filtrer et supprimer le patient
+        patients = patients.filter((p: any) => p.telephone !== patient.telephone);
+  
+        // Sauvegarder les données mises à jour
+        await savePatients(patients);  // Utiliser savePatients pour sauvegarder la liste des patients mise à jour
+  
+        // Mettre à jour l'état des patients
+        setPatients(patients);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la suppression du patient:', error);
+    }
+  };
+  
+  
+
+  const resetPatientsStorage = async () => {
+    await AsyncStorage.removeItem('patients');
+    setPatients([]);  // Mettre à jour l'état des patients
+    console.log('Les données des patients ont été réinitialisées.');
+  };
+  
+  
+  // Utilisation de la fonction retrievePatients
+  useEffect(() => {
+    const fetchPatients = async () => {
+      const patientsData = await retrievePatients();
+      setPatients(patientsData);
+    };
+    fetchPatients();
+  }, []);
+
+  
   useEffect(() => {
     getPatients();
   }, []);
@@ -90,23 +264,26 @@ const Home: React.FC = () => {
     });
   };
 
-  const deletePatient = async (patient: any) => {
-    try {
-      const storedPatients = await AsyncStorage.getItem('patients');
-      let patients = storedPatients ? JSON.parse(storedPatients) : [];
-      patients = patients.filter((p: any) => p.telephone !== patient.telephone);
+  
+  
+  
+  
+  
 
-      await AsyncStorage.setItem('patients', JSON.stringify(patients));
-      setPatients(patients);
+  const clearSpecificData = async (key: string) => {
+    try {
+      await AsyncStorage.removeItem(key); // Supprimer la clé spécifique
+      console.log(`Données pour la clé "${key}" supprimées avec succès.`);
     } catch (error) {
-      setStorageMessage('Failed to delete patient.');
+      console.error("Erreur lors de la suppression de la clé :", key, error);
     }
   };
 
-  const handleRefresh = async (event: CustomEvent) => {
-    await getPatients();
-    event.detail.complete();
-  };
+ const handleRefresh = async (event: CustomEvent) => {
+  await getPatients();
+  event.detail.complete();
+};
+
 
   const navigateToAddPatient = () => {
     history.push('/patient-form');
@@ -166,6 +343,18 @@ const Home: React.FC = () => {
               <IonIcon icon={chatbox} slot="start" />
               <IonLabel>Message</IonLabel>
             </IonItem>
+            <IonMenuToggle auto-hide="false">
+            <IonItem routerLink="/consultations" routerDirection="none">
+              <IonIcon slot="start" icon={calendar} />
+              <IonLabel>Consultations</IonLabel>
+            </IonItem>
+          </IonMenuToggle>
+          <IonMenuToggle auto-hide="false">
+            <IonItem routerLink="/historique" routerDirection="none">
+              <IonIcon slot="start" icon={time} />
+              <IonLabel>Historique</IonLabel>
+            </IonItem>
+          </IonMenuToggle>
           </IonList>
         </IonContent>
       </IonMenu>
@@ -191,24 +380,22 @@ const Home: React.FC = () => {
           {patients.length > 0 ? (
             patients.map((patient, index) => (
               <IonItem key={index}>
-                {/* Avatar à gauche */}
                 <IonAvatar slot="start">
                   <img src={patient.rappel || 'https://via.placeholder.com/150'} alt={`${patient.nom} ${patient.prenom}`} />
                 </IonAvatar>
-
-                {/* Informations sur le patient */}
-                <IonLabel onClick={() => navigateToPatientActions(patient)}>
+                <IonLabel onClick={() => history.push(`/patient-details`, { state: { patient } })}>
                   <h2>{`${patient.nom} ${patient.prenom}`}</h2>
-                  <p>{`Numéro: ${patient.telephone}`}</p>
+                  <p>{`tel: ${patient.telephone}`}</p>
                 </IonLabel>
 
-                {/* Icônes pour modifier et supprimer */}
-                <IonIcon icon={pencil} slot="end" onClick={() => navigateToEditPatient(patient)} />
+                <IonIcon icon={pencil} slot="end" onClick={() => history.push(`/patient-form`, { state: { patient } })} />
                 <IonIcon icon={trash} slot="end" onClick={() => deletePatient(patient)} />
+                
               </IonItem>
             ))
           ) : (
             <p>No patients added yet.</p>
+            
           )}
         </IonList>
         </IonContent>

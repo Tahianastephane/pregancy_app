@@ -1,8 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonButton, IonItem, IonLabel, IonInput, IonSelect, IonSelectOption, IonCard, IonCardHeader, IonCardTitle, IonList, IonToast, IonAlert } from '@ionic/react';
+import React, { useState, useEffect, useRef } from 'react';
+import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonButton, IonItem, IonLabel, IonInput, IonSelect, IonSelectOption, IonCard, IonCardHeader, IonCardTitle, IonList, IonToast, IonAlert, IonButtons, IonBackButton, IonRow, IonCol } from '@ionic/react';
 import { useHistory, useLocation } from 'react-router-dom';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Avatar from 'react-avatar';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
+import { motion } from 'framer-motion';
+import { storeData, getData, compressData, decompressData } from '../utils/storageUtils'; // Importer les fonctions de compression et de décompression
+import imageCompression from 'browser-image-compression';
+
 
 interface Patient {
   telephone: string;
@@ -66,6 +71,7 @@ const PatientForm: React.FC = () => {
   const [toastMessage, setToastMessage] = useState('');
   const [toastColor, setToastColor] = useState<'success' | 'danger'>('success');
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
+  const [step, setStep] = useState(1);
 
   useEffect(() => {
     if (location.state && location.state.patient) {
@@ -90,16 +96,84 @@ const PatientForm: React.FC = () => {
     setPatient({ ...patient, [field]: value });
   };
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files ? e.target.files[0] : null;
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPatient(prevPatient => ({ ...prevPatient, rappel: reader.result as string }));
-      };
-      reader.readAsDataURL(file);
+      // Compresser l'image
+      const compressedImage = await compressImage(file);
+      if (compressedImage) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setPatient(prevPatient => ({
+            ...prevPatient,
+            rappel: reader.result as string,
+          }));
+        };
+        reader.readAsDataURL(compressedImage);
+      }
     }
   };
+
+  const handleTakePhoto = async () => {
+    try {
+      const photo = await Camera.getPhoto({
+        quality: 90,
+        source: CameraSource.Camera, // Utilisation de la caméra
+        resultType: CameraResultType.Uri, // Récupération de l'image sous forme de URI
+      });
+  
+      // Vérifier si `photo.webPath` est défini
+      const fileUri = photo.webPath;
+  
+      if (!fileUri) {
+        console.error("Aucune URI d'image obtenue");
+        return;
+      }
+  
+      // Récupérer l'image depuis l'URI
+      const file = await fetch(fileUri)
+        .then((response) => response.blob())
+        .then((blob) => {
+          return new File([blob], 'photo.jpg', { type: 'image/jpeg' });
+        });
+  
+      // Compresser l'image
+      const compressedImage = await compressImage(file);
+      if (compressedImage) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setPatient(prevPatient => ({
+            ...prevPatient,
+            rappel: reader.result as string,
+          }));
+        };
+        reader.readAsDataURL(compressedImage);
+      }
+    } catch (error) {
+      console.error("Erreur lors de la prise de la photo:", error);
+      setToastMessage('Erreur lors de la prise de photo.');
+      setToastColor('danger');
+      setShowToast(true);
+    }
+  };
+
+  const compressImage = async (file: File) => {
+    const options = {
+      maxSizeMB: 1, // Limite à 1 Mo
+      maxWidthOrHeight: 800, // Limite de la largeur ou hauteur de l'image
+      useWebWorker: true, // Utilisation d'un Web Worker pour la compression
+    };
+  
+    try {
+      const compressedFile = await imageCompression(file, options);
+      return compressedFile;
+    } catch (error) {
+      console.error("Erreur lors de la compression de l'image:", error);
+      return null;
+    }
+  };
+  
+
   const handleSubmit = async () => {
     if (
       !patient.telephone || !patient.nom || !patient.prenom || !patient.age || !patient.marie || !patient.region || !patient.district_sanitaire ||
@@ -112,11 +186,12 @@ const PatientForm: React.FC = () => {
       setShowToast(true);
       return;
     }
-
+  
     try {
-      const storedPatients = await AsyncStorage.getItem('patients');
-      let patients = storedPatients ? JSON.parse(storedPatients) : [];
-
+      const storedPatients = await getData('patients');
+      let patients = storedPatients ? storedPatients : [];
+  
+      // Ajouter ou mettre à jour le patient
       if (isEdit) {
         const index = patients.findIndex((p: Patient) => p.telephone === patient.telephone);
         if (index !== -1) {
@@ -125,38 +200,30 @@ const PatientForm: React.FC = () => {
       } else {
         patients.push(patient);
       }
-
-      await AsyncStorage.setItem('patients', JSON.stringify(patients));
+  
+      await storeData('patients', patients);
       setToastMessage(isEdit ? 'Patient modifié avec succès!' : 'Patient ajouté avec succès!');
       setToastColor('success');
       setShowToast(true);
       setPatient(initialPatient);
       history.push('/home');
     } catch (error) {
-      console.error("Error saving patient:", error);
+      console.error("Erreur lors de l'enregistrement des patients:", error);
       setToastMessage('Une erreur est survenue.');
       setToastColor('danger');
       setShowToast(true);
     }
   };
-
-  const handleCancel = () => {
-    setToastMessage('Annulation réussie!');
-    setToastColor('success');
-    setShowToast(true);
-    setPatient(initialPatient);  // Réinitialiser le patient
-    setIsEdit(false);            // Réinitialiser le mode édition
-    history.push('/home');
-  };
+  
+  
 
   const handleDelete = async () => {
     try {
-      const storedPatients = await AsyncStorage.getItem('patients');
-      let patients = storedPatients ? JSON.parse(storedPatients) : [];
-
-      patients = patients.filter((p: Patient) => p.telephone !== patient.telephone);
-
-      await AsyncStorage.setItem('patients', JSON.stringify(patients));
+      let patients = await getData('patients');
+      if (patients) {
+        patients = patients.filter((p: Patient) => p.telephone !== patient.telephone);
+        await storeData('patients', patients);
+      }
       setToastMessage('Patient supprimé avec succès!');
       setToastColor('success');
       setShowToast(true);
@@ -169,84 +236,260 @@ const PatientForm: React.FC = () => {
       setShowToast(true);
     }
   };
+  
+  const modal = useRef<HTMLIonModalElement>(null);
+  const validateStep = () => {
+    switch (step) {
+      case 1:
+        return (
+          patient.telephone &&
+          patient.nom &&
+          patient.prenom &&
+          patient.age &&
+          patient.marie &&
+          patient.region
+        );
+      case 2:
+        return (
+          patient.date_dernier_accouchement &&
+          patient.nombre_enfants_vivants &&
+          patient.gestite &&
+          patient.parite &&
+          patient.ddr
+        );
+      case 3:
+        return (
+          patient.district_sanitaire &&
+          patient.formation_sanitaire &&
+          patient.niveau_instruction &&
+          patient.profession_femme &&
+          patient.profession_mari &&
+          patient.adresse &&
+          patient.commune
+        );
+      default:
+        return false;
+    }
+  };
+  const nextStep = () => {
+    if (validateStep()) {
+      setStep(step + 1);
+    } else {
+      alert('Veuillez remplir tous les champs requis.');
+    }
+  };
+
+  const prevStep = () => {
+    setStep(step - 1);
+  };
 
   return (
     <IonPage>
       <IonHeader>
         <IonToolbar>
+        <IonButtons slot="start">
+            <IonBackButton defaultHref="/home" />
+          </IonButtons>
           <IonTitle>{isEdit ? 'Modifier Patient' : 'Ajouter Patient'}</IonTitle>
         </IonToolbar>
       </IonHeader>
-      <IonContent>
+      <IonContent className="ion-padding" style={{ paddingTop: '50px' }}>
+         {/* Contexte Framer Motion pour l'arrière-plan animé */}
+            <motion.div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: -1, // Placer l'arrière-plan en dessous du contenu
+                background: 'linear-gradient(45deg, #ff6f61, #6a5acd)', // Exemple de fond dégradé
+              }}
+              animate={{
+                backgroundPosition: ['0% 0%', '100% 100%'], // Animation du dégradé
+              }}
+              transition={{
+                duration: 10,
+                repeat: Infinity,
+                repeatType: 'loop', // Répétition infinie de l'animation
+                ease: 'linear',
+              }}
+            ></motion.div>
+      {step === 1 && (
+          <motion.div
+          initial={{ opacity: 0 }}  // Opacité initiale à 0
+          animate={{ opacity: 1 }}  // Transition vers une opacité de 1 (visible)
+          transition={{ duration: 0.5 }}  // Durée de l'animation
+          >
         <IonCard>
           <IonCardHeader>
             <IonCardTitle>Informations Personnelles</IonCardTitle>
           </IonCardHeader>
+          <motion.div
+              style={{
+                backgroundColor: '', // Arrière-plan transparent (50% d'opacité)
+                boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)', // Exemple de dégradé linéaire
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: -1, // Placer l'arrière-plan derrière le contenu
+                borderRadius: '20px', // Optionnel : pour arrondir les bords du card
+              }}
+              animate={{
+                backgroundPosition: ['0% 0%', '100% 100%'], // Animation du dégradé
+              }}
+              transition={{
+                duration: 10,
+                repeat: Infinity,
+                repeatType: 'loop', // Répétition infinie de l'animation
+                ease: 'linear',
+              }}
+        ></motion.div>
           <IonList>
-          <IonItem>
+      <IonItem>
+          <IonItem lines="none" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
               <Avatar
                 src={patient.rappel}
                 name={patient.nom + ' ' + patient.prenom}
                 round={true}
-                size="100"
+                size="60"
+                style={{ marginRight: '20px' }}
               />
-              <input type="file" accept="image/*" onChange={handleAvatarChange} />
-            </IonItem>
-            <IonItem>
-              <IonInput
-                label="Téléphone"
-                placeholder="Entrez le numéro de téléphone"
-                value={patient.telephone}
-                onIonChange={e => handleInputChange('telephone', e.detail.value!)}
+              <div>
+              
+                <p style={{ color: 'gray', fontSize: '14px' }}></p>
+              </div>
+            </div>
+
+            <div style={{ textAlign: 'center' }}>
+              <IonButton expand="full" onClick={handleTakePhoto} style={{ marginTop: '10px' }}>
+                Prendre une Photo
+              </IonButton>
+              <input 
+                type="file" 
+                accept="image/*" 
+                onChange={handleAvatarChange} 
+                style={{ display: 'none' }} // Cacher l'input de fichier
+                id="file-upload"
               />
-           </IonItem>
-           <IonItem>
-              <IonInput
-                label="Nom"
-                placeholder="Entrez le nom"
-                value={patient.nom}
-                onIonChange={e => handleInputChange('nom', e.detail.value!)}
-              />
-            </IonItem>
-            <IonItem>
+              <label htmlFor="file-upload" style={{ display: 'block', marginTop: '10px', cursor: 'pointer', color: '#3880ff' }}>
+                Ou téléchargez une image
+              </label>
+            </div>
+          </IonItem>
+
+        </IonItem>
+      <IonItem>
+            <motion.div 
+              initial={{ opacity: 0, y: -20 }} // Commence avec une opacité de 0 et une position verticale décalée
+              animate={{ opacity: 1, y: 0 }} // Transition vers une opacité de 1 et une position normale
+              transition={{ duration: 0.5 }} // Durée de l'animation
+            >
+        <IonInput
+          label="Téléphone"
+          label-placement="floating"
+            fill="solid"
+          placeholder="Entrez le numéro de téléphone"
+          value={patient.telephone}
+          onIonChange={e => handleInputChange('telephone', e.detail.value!)}
+        />
+             </motion.div>
+      </IonItem>
+      <IonItem>
+           <motion.div 
+              initial={{ opacity: 0, x: -20 }} // Commence avec une opacité de 0 et un décalage horizontal
+              animate={{ opacity: 1, x: 0 }} // Transition vers une opacité de 1 et une position normale
+              transition={{ duration: 0.5 }}
+            >
+        <IonInput
+          label="Nom"
+          label-placement="floating"
+          fill="solid"
+          placeholder="Entrez le nom"
+          value={patient.nom}
+          onIonChange={e => handleInputChange('nom', e.detail.value!)}
+        />
+            </motion.div>
+      </IonItem>
+      <IonItem>
               <IonInput
                 label="Prénom"
+                label-placement="floating"
+                fill="solid"
                 placeholder="Entrez le prénom"
                 value={patient.prenom}
                 onIonChange={e => handleInputChange('prenom', e.detail.value!)}
               />
             </IonItem>
+            <IonItem style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+  <motion.div
+    initial={{ opacity: 0, scale: 0.8 }}
+    animate={{ opacity: 1, scale: 1 }}
+    transition={{ duration: 0.5 }}
+    style={{ flex: 1 }} // Utilise l'espace disponible pour l'élément
+  >
+    <IonSelect
+      label="Âge"
+      fill="solid"
+      value={patient.age}
+      onIonChange={e => handleInputChange('age', e.detail.value!)}
+    >
+      {Array.from({ length: 100 }, (_, i) => (
+        <IonSelectOption key={i} value={i + 1}>
+          {i + 1} ans
+        </IonSelectOption>
+      ))}
+    </IonSelect>
+  </motion.div>
+
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.5 }}
+    style={{ flex: 1, textAlign: 'right' }} // Alignement à droite
+  >
+    <IonSelect
+      label="Marié(e)"
+      fill="solid"
+      value={patient.marie}
+      onIonChange={e => handleInputChange('marie', e.detail.value!)}
+    >
+      <IonSelectOption value="Oui">Oui</IonSelectOption>
+      <IonSelectOption value="Non">Non</IonSelectOption>
+    </IonSelect>
+  </motion.div>
+</IonItem>
             <IonItem>
-              <IonInput
-                label="Âge"
-                type="number"
-                placeholder="Entrez l'âge"
-                value={patient.age.toString()}
-                onIonChange={e => handleInputChange('age', parseInt(e.detail.value!, 10))}
-              />
-            </IonItem>
-            <IonItem>
-              <IonSelect
-                label="Marié(e)"
-                value={patient.marie}
-                onIonChange={e => handleInputChange('marie', e.detail.value!)}
-              >
-                <IonSelectOption value="Oui">Oui</IonSelectOption>
-                <IonSelectOption value="Non">Non</IonSelectOption>
-              </IonSelect>
-            </IonItem>
-            <IonItem>
-              <IonInput
-                label="Région"
-                placeholder="Entrez la région"
-                value={patient.region}
-                onIonChange={e => handleInputChange('region', e.detail.value!)}
-              />
+            <motion.div 
+        initial={{ opacity: 0, y: 10 }} // Départ avec opacité de 0 et léger décalage vers le bas
+        animate={{ opacity: 1, y: 0 }} // Transition vers une opacité de 1 et une position normale
+        transition={{ duration: 0.5 }}
+      >
+        <IonInput
+          label="Région"
+            label-placement="floating"
+            fill="solid"
+          placeholder="Entrez la région"
+          value={patient.region}
+          onIonChange={e => handleInputChange('region', e.detail.value!)}
+        />
+      </motion.div>
             </IonItem>
           </IonList>
         </IonCard>
+        </motion.div>
+      )}
 
         {/* Section: Informations de la Grossesse */}
+        {step === 2 && (
+           <motion.div
+           initial={{ opacity: 0 }}  // Opacité initiale à 0
+           animate={{ opacity: 1 }}  // Transition vers une opacité de 1 (visible)
+           transition={{ duration: 0.5 }}  // Durée de l'animation
+         >
         <IonCard>
           <IonCardHeader>
             <IonCardTitle>Informations de la Grossesse</IonCardTitle>
@@ -314,8 +557,16 @@ const PatientForm: React.FC = () => {
             </IonItem>
           </IonList>
         </IonCard>
+        </motion.div>
+        )}
 
         {/* Section: Détails Professionnels et Autres */}
+        {step === 3 && (
+           <motion.div
+           initial={{ opacity: 0 }}  // Opacité initiale à 0
+           animate={{ opacity: 1 }}  // Transition vers une opacité de 1 (visible)
+           transition={{ duration: 0.5 }}  // Durée de l'animation
+         >
         <IonCard>
           <IonCardHeader>
             <IonCardTitle>Détails Professionnels et Autres</IonCardTitle>
@@ -380,18 +631,51 @@ const PatientForm: React.FC = () => {
             
           </IonList>
         </IonCard>
+        </motion.div>
+        )}
+         <div className="ion-padding">
+  <IonRow>
+    {/* Bouton Précédent, aligné à gauche */}
+    {step > 1 && (
+      <IonCol size="6">
+        <IonButton expand="block" onClick={prevStep} className="ion-margin-end">
+          Précédent
+        </IonButton>
+      </IonCol>
+    )}
 
-        <IonButton expand="full" onClick={handleSubmit}>
+    {/* Bouton Suivant ou Ajouter, aligné à droite */}
+    <IonCol size="6" className="ion-text-right">
+      {step < 3 && (
+        <IonButton expand="block" onClick={nextStep}>
+          Suivant
+        </IonButton>
+      )}
+
+      {step === 3 && (
+        <IonButton expand="block" onClick={handleSubmit}>
           {isEdit ? 'Modifier' : 'Ajouter'}
         </IonButton>
-        {isEdit && (
-          <IonButton expand="full" color="danger" onClick={() => setShowDeleteAlert(true)}>
-            Supprimer
-          </IonButton>
-        )}
-        <IonButton expand="full" onClick={handleCancel}>
+      )}
+    </IonCol>
+  </IonRow>
+
+  {/* Bouton Supprimer, si en mode édition */}
+  {isEdit && (
+    <IonRow>
+      <IonCol size="12">
+        <IonButton expand="block" color="danger" onClick={() => setShowDeleteAlert(true)}>
           Annuler
         </IonButton>
+      </IonCol>
+    </IonRow>
+  )}
+</div>
+
+
+
+        
+      
 
         <IonToast
           isOpen={showToast}

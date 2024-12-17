@@ -1,10 +1,9 @@
 // /src/services/api.ts
 
 interface Patient {
-    id: string;
+    telephone: string;
     nom: string;
     prenom: string;
-    telephone: string;
     rappel?: string;
     ddr?: string; // Date de rendez-vous
   }

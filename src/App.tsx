@@ -45,11 +45,12 @@ import '@ionic/react/css/display.css';
 import '@ionic/react/css/palettes/dark.system.css';
 
 /* Theme variables */
-import './theme/variables.css';
+// import './theme/variables.css';
 import PatientAntes from './pages/register/PatientAntes';
 import VoirAntecedent from './pages/register/PatientAntesVoir';
 import MessagePage from './pages/Message/message';
-// import ConversationPage from './pages/Message/Coversation';
+import ConversationPage from './pages/Message/conversation';
+import Statistics from './pages/statistics/statistics';
 
 
 setupIonicReact();
@@ -66,7 +67,9 @@ const App: React.FC = () => (
         <Route exact path="/patient-details" component={PatientDetails} />
         <Route exact path="/voir-antecedent" component={VoirAntecedent} />
         <Route exact path="/message" component={MessagePage} />
-        {/* <Route exact path="/conversation" component={ConversationPage} /> */}
+        <Route exact path="/conversation" component={ConversationPage} />
+        <Route exact path="/statistics" component={ Statistics} />
+        
         <Route exact path="/" render={() => <Redirect to="/login" />} />
         
       </IonRouterOutlet>

@@ -1,40 +1,21 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as bcrypt from 'bcryptjs'; // Importation de bcryptjs pour hachage du mot de passe
-
-// Sauvegarder les données sous une clé spécifique
-const storeData = async (key: string, value: any) => {
-  try {
-    await AsyncStorage.setItem(key, JSON.stringify(value));
-  } catch (e) {
-    console.error('Erreur lors de l\'enregistrement des données', e);
-  }
-};
-
-// Récupérer les données d'une clé spécifique
-const getData = async (key: string) => {
-  try {
-    const jsonValue = await AsyncStorage.getItem(key);
-    return jsonValue != null ? JSON.parse(jsonValue) : null;
-  } catch (e) {
-    console.error('Erreur lors de la lecture des données', e);
-    return null;
-  }
-};
+import { storeData, getData } from '../utils/storageUtils'; // Importer les fonctions de votre utilitaire
 
 // **Fonctions spécifiques pour la table admin**
-export const saveAdmin = async (admin: any) => {
+export const saveAdmin = async (admin: any): Promise<void> => {
   const admins = await getData('admins');
   const updatedAdmins = admins ? [...admins, admin] : [admin];
   await storeData('admins', updatedAdmins);
 };
 
 // Récupérer l'administrateur
-export const getAdmin = async () => {
+export const getAdmin = async (): Promise<any> => {
   return await getData('admins');
 };
 
 // Fonction pour insérer un admin par défaut si nécessaire
-export const initializeAdmin = async () => {
+export const initializeAdmin = async (): Promise<void> => {
   // Supprimer toutes les données liées aux administrateurs
   await clearAdminData(); // Fonction que vous devrez implémenter pour supprimer les données de l'administrateur
 
@@ -54,7 +35,7 @@ export const initializeAdmin = async () => {
 };
 
 // Fonction pour supprimer toutes les données des administrateurs
-const clearAdminData = async () => {
+const clearAdminData = async (): Promise<void> => {
   // Effacer les données existantes de l'administrateur
   await storeData('admins', []); // Cela efface la liste des administrateurs dans le stockage
   console.log('Toutes les données des administrateurs ont été supprimées');
@@ -86,14 +67,14 @@ interface Patient {
 }
 
 // **Fonctions spécifiques pour la table patients**
-export const savePatient = async (patient: Patient) => {
+export const savePatient = async (patient: Patient): Promise<void> => {
   const patients = await getData('patients');
   const updatedPatients = patients ? { ...patients, [patient.telephone]: patient } : { [patient.telephone]: patient };
   await storeData('patients', updatedPatients);
 };
 
 // Récupérer tous les patients
-export const getPatients = async () => {
+export const getPatients = async (): Promise<any> => {
   return await getData('patients');
 };
 
@@ -116,14 +97,14 @@ export const saveAntecedent = async (antecedent: {
   mort_ne: number;
   fausses_couches: number;
   habitude: number;
-}) => {
+}): Promise<void> => {
   const antecedents = await getData('antecedents');
   const updatedAntecedents = antecedents ? [...antecedents, antecedent] : [antecedent];
   await storeData('antecedents', updatedAntecedents);
 };
 
 // Récupérer tous les antécédents
-export const getAntecedents = async () => {
+export const getAntecedents = async (): Promise<any> => {
   return await getData('antecedents');
 };
 
@@ -134,14 +115,14 @@ export const saveMessage = async (message: {
   envoyer: string;
   message: string;
   date_envoie: string;
-}) => {
+}): Promise<void> => {
   const messages = await getData('messages');
   const updatedMessages = messages ? [...messages, message] : [message];
   await storeData('messages', updatedMessages);
 };
 
 // Récupérer tous les messages
-export const getMessages = async () => {
+export const getMessages = async (): Promise<any> => {
   return await getData('messages');
 };
 

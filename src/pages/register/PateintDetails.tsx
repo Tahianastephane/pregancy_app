@@ -168,7 +168,9 @@ const addAntecedent = async () => {
       </IonHeader>
       <IonContent className="ion-padding">
         <button onClick={() => setShowPatientDetails(!showPatientDetails)}>
-          <h2>Détails de {patient.nom} {patient.prenom}</h2>
+        <IonButton expand="full" onClick={() => setShowPatientDetails(!showPatientDetails)}>
+          Détails de {patient.nom} {patient.prenom}
+        </IonButton>
         </button>
         {showPatientDetails && (
           <>
