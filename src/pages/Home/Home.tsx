@@ -6,6 +6,13 @@ import { pencil, trash, add, chatbox, colorPalette, home, statsChart, megaphone,
 import { addMonths, isBefore } from 'date-fns';
 import { decompressData ,compressData } from '../utils/storageUtils';
 import * as pako from 'pako';
+import Consultations from '../consultaitons/Consultations';
+
+type Notification = {
+  message: string;
+  phone: string;
+  seen: boolean;
+};
 
 
 const Home: React.FC = () => {
@@ -14,7 +21,8 @@ const Home: React.FC = () => {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
-  const [notificationMessages, setNotificationMessages] = useState<{ message: string, phone: string }[]>([]);
+  const [notificationMessages, setNotificationMessages] = useState<{
+    seen: any; message: string, phone: string }[]>([]);
   const [newNotificationsCount, setNewNotificationsCount] = useState(0);
   const history = useHistory();
 
@@ -29,10 +37,16 @@ const Home: React.FC = () => {
     return byteArray;
   };
   
-  const isValidBase64 = (str: string) => {
-    const base64Pattern = /^[A-Za-z0-9+/=]+$/;
-    return base64Pattern.test(str);
+  const isValidBase64 = (str: string): boolean => {
+    // Vérifie que la chaîne correspond au format base64
+    try {
+      return btoa(atob(str)) === str; // Essaye de décoder puis de réencoder
+    } catch (e) {
+      return false;
+    }
   };
+  
+  
 
   const getPatients = async () => {
     try {
@@ -53,10 +67,7 @@ const Home: React.FC = () => {
   
           // Mettre à jour l'état des patients
           setPatients(patients);
-        } else {
-          console.error("Données base64 incorrectes.");
-          setPatients([]);  // Réinitialiser les patients en cas de format incorrect
-        }
+        } 
       } else {
         console.log("Aucun patient trouvé.");
         setPatients([]);  // Aucun patient trouvé dans AsyncStorage
@@ -71,30 +82,87 @@ const Home: React.FC = () => {
   // Fonction pour sauvegarder les patients
   const savePatients = async (patients: any[]) => {
     try {
-      // Convertir les patients en JSON string
-      const jsonString = JSON.stringify(patients);
-  
-      // Compresser les données JSON sans l'option 'to'
-      const compressedData = pako.deflate(jsonString);
-  
-      // Convertir en base64 pour le stockage
-      const base64String = btoa(String.fromCharCode(...compressedData));
-  
-      // Sauvegarder en AsyncStorage
-      await AsyncStorage.setItem('patients', base64String);
-      console.log('Patients enregistrés en base64');
-    } catch (error) {
-      console.error("Erreur lors de l'enregistrement des patients:", error);
+      const jsonValue = JSON.stringify(patients);
+      await AsyncStorage.setItem('patients', jsonValue);
+      console.log('Patients sauvegardés avec succès');
+    } catch (e) {
+      console.error('Erreur lors de la sauvegarde des patients:', e);
     }
   };
   
   
   
+  
+  
+  
   const addPatient = async (newPatient: any) => {
-    const updatedPatients = [...patients, newPatient];
-    setPatients(updatedPatients);
-    await savePatients(updatedPatients);
+    // Vérifier si le patient existe déjà
+    const patientExists = patients.some(patient => patient.telephone === newPatient.telephone);
+  
+    if (!patientExists) {
+      const updatedPatients = [...patients, newPatient];
+      setPatients(updatedPatients);
+      await savePatients(updatedPatients);
+    } else {
+      console.log('Patient déjà existant');
+    }
   };
+  
+
+
+//   const updatePatient = (updatedPatient: any) => {
+//   // Mise à jour dans la base de données locale ou API
+//   const updatedPatientsList = patients.map((patient) =>
+//     patient.id === updatedPatient.id ? updatedPatient : patient
+//   );
+
+//   // Mise à jour de l'état avec la nouvelle liste de patients
+//   setPatients(updatedPatientsList);
+
+//   // Vous pouvez aussi mettre à jour la base de données ici
+//   // Par exemple, avec react-native-sqlite-storage
+// };
+
+  
+  
+const updatedPatient = async (updatedPatient: any) => {
+  try {
+    // Récupérer les patients stockés
+    const storedPatients = await AsyncStorage.getItem('patients');
+    let patients = [];
+    
+    if (storedPatients) {
+      if (isValidBase64(storedPatients)) {
+        // Décompresser les données si elles sont en base64
+        const byteArray = base64ToUint8Array(storedPatients);
+        const decompressedData = pako.inflate(byteArray, { to: 'string' });
+        patients = JSON.parse(decompressedData);
+      } else {
+        patients = JSON.parse(storedPatients);
+      }
+      
+      // Trouver l'index du patient à modifier
+      const patientIndex = patients.findIndex((patient: any) => patient.telephone === updatedPatient.telephone);
+      
+      if (patientIndex !== -1) {
+        // Mettre à jour les informations du patient sans duplication
+        patients[patientIndex] = { ...patients[patientIndex], ...updatedPatient };
+  
+        // Sauvegarder les données mises à jour
+        await savePatients(patients);
+        
+        // Mettre à jour l'état local des patients (assurez-vous que vous ne rajoutez pas un patient mais le mettez à jour)
+        setPatients([...patients]);
+      } else {
+        console.error('Patient non trouvé.');
+      }
+    }
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour du patient:', error);
+  }
+};
+
+  
 
   
   
@@ -158,33 +226,28 @@ const clearStorage = async () => {
   
 
   // Fonction pour supprimer un patient
-  const deletePatient = async (patient: any) => {
+  const deletePatient = async (telephone: string) => {
     try {
-      const storedPatients = await AsyncStorage.getItem('patients');
-      let patients = [];
-  
-      if (storedPatients) {
-        if (isValidBase64(storedPatients)) {
-          // Décompresser les données si elles sont en base64
-          const byteArray = base64ToUint8Array(storedPatients);
-          const decompressedData = pako.inflate(byteArray, { to: 'string' });
-          patients = JSON.parse(decompressedData);
-        } else {
-          patients = JSON.parse(storedPatients);
-        }
-  
-        // Filtrer et supprimer le patient
-        patients = patients.filter((p: any) => p.telephone !== patient.telephone);
-  
-        // Sauvegarder les données mises à jour
-        await savePatients(patients);  // Utiliser savePatients pour sauvegarder la liste des patients mise à jour
-  
-        // Mettre à jour l'état des patients
-        setPatients(patients);
-      }
-    } catch (error) {
-      console.error('Erreur lors de la suppression du patient:', error);
+      console.log('Suppression du patient avec le téléphone:', telephone); // Log du téléphone du patient à supprimer
+      const jsonValue = await AsyncStorage.getItem('@patients');
+      const patients: any[] = jsonValue != null ? JSON.parse(jsonValue) : [];
+      const updatedPatients = patients.filter(patient => patient.telephone !== telephone);
+      await savePatients(updatedPatients);
+      setPatients(updatedPatients);
+      console.log('Patient supprimé avec succès');
+    } catch (e) {
+      console.error('Erreur lors de la suppression du patient:', e);
     }
+  };
+
+  const performHeavyTask = async () => {
+    // Simulation d'une tâche lourde
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        console.log("Tâche lourde terminée");
+        resolve(true);
+      }, 300);
+    });
   };
   
   
@@ -199,56 +262,126 @@ const clearStorage = async () => {
   // Utilisation de la fonction retrievePatients
   useEffect(() => {
     const fetchPatients = async () => {
-      const patientsData = await retrievePatients();
-      setPatients(patientsData);
+      const storedPatients = await AsyncStorage.getItem('patients');
+      console.log("Contenu de storedPatients : ", storedPatients);
+  
+      if (storedPatients) {
+        try {
+          if (isValidBase64(storedPatients)) {
+            const byteArray = base64ToUint8Array(storedPatients);
+            const decompressedData = pako.inflate(byteArray, { to: 'string' });
+            const patients = JSON.parse(decompressedData);
+            setPatients(patients);  // Mettre à jour l'état des patients
+          } else {
+            const patients = JSON.parse(storedPatients);
+            setPatients(patients);  // Mettre à jour l'état des patients
+          }
+        } catch (error) {
+          console.error("Erreur de parsing des patients:", error);
+          setPatients([]); // Réinitialiser en cas d'erreur de parsing
+        }
+      } else {
+        setPatients([]);  // Si aucun patient n'est trouvé
+      }
     };
+  
     fetchPatients();
-  }, []);
-
+  }, []);  // Ne s'exécute qu'une fois lors du montage du composant
   
   useEffect(() => {
-    getPatients();
-  }, []);
+    if (toastMessage) {
+      setShowToast(true);
+    }
+  }, [toastMessage]);
+  
+  
+  
 
+
+ 
   useEffect(() => {
     const checkForNotifications = () => {
-      const notifications: { message: string, phone: string }[] = [];
-      let newCount = 0;
+      const notifications: Notification[] = [];
       const currentDate = new Date();
-
+  
       patients.forEach((patient) => {
         const ddr = patient.ddr;
+        let rdvEffectue = patient.rdvEffectue; // Vérifier si rdvEffectue est bien défini
+  
+        // Log pour débogage
+        console.log(`Patient: ${patient.nom} ${patient.prenom}, DDR: ${ddr}, rdvEffectue: ${rdvEffectue}`);
+  
+        // Si rdvEffectue est undefined ou null, le définir à false par défaut
+        if (rdvEffectue === undefined || rdvEffectue === null) {
+          rdvEffectue = false;
+        }
+  
         if (ddr) {
           const ddrDate = new Date(ddr);
           const nextAppointmentDate = addMonths(ddrDate, 1);
-
-          // Vérification du rendez-vous d'aujourd'hui
+  
+          // Vérifie si le rendez-vous est prévu aujourd'hui
           if (
             nextAppointmentDate.getDate() === currentDate.getDate() &&
             nextAppointmentDate.getMonth() === currentDate.getMonth() &&
             nextAppointmentDate.getFullYear() === currentDate.getFullYear()
           ) {
-            const message = `Rappel : Rendez-vous pour patient ${patient.nom} ${patient.prenom} prévu aujourd'hui.`;
-            notifications.push({ message, phone: patient.telephone });
-            newCount += 1;
+            if (rdvEffectue === true) {
+              const message = `Rappel : Rendez-vous pour patient ${patient.nom} ${patient.prenom} est effectué aujourd'hui. Date : ${nextAppointmentDate.toLocaleDateString()}`;
+              notifications.push({ message, phone: patient.telephone, seen: false });
+            } else {
+              const message = `Rappel : Rendez-vous pour patient ${patient.nom} ${patient.prenom} prévu aujourd'hui.`;
+              notifications.push({ message, phone: patient.telephone, seen: false });
+            }
           }
-
-          // Vérification du rendez-vous manqué (plus de 1 jour passé)
-          if (isBefore(ddrDate, currentDate) && (currentDate.getTime() - ddrDate.getTime()) > 86400000) { // 86400000 ms = 1 jour
-            const missedMessage = `Rappel : Le patient ${patient.nom} ${patient.prenom} n'était pas au rendez-vous du ${ddrDate.toLocaleDateString()}.`;
-            notifications.push({ message: missedMessage, phone: patient.telephone });
-            newCount += 1;
+  
+          // Vérifie si le rendez-vous est manqué
+          if (isBefore(nextAppointmentDate, currentDate) && (currentDate.getTime() - nextAppointmentDate.getTime()) > 86400000) {
+            if (rdvEffectue === false || rdvEffectue === null) {
+              const missedMessage = `Rappel : Le patient ${patient.nom} ${patient.prenom} n'était pas au rendez-vous du ${nextAppointmentDate.toLocaleDateString()}.`;
+              notifications.push({ message: missedMessage, phone: patient.telephone, seen: false });
+            }
           }
         }
       });
-
+  
       setNotificationMessages(notifications);
-      setNewNotificationsCount(newCount);
+      setNewNotificationsCount(notifications.length);
     };
-
+  
+    // Appel de la fonction
     checkForNotifications();
-
   }, [patients]);
+  
+  
+  
+  
+  
+  
+
+ 
+
+  const handleNotificationClose = () => {
+    setShowNotifications(false);
+  };
+
+  const markNotificationAsSeen = (index: number) => {
+    const updatedNotifications = [...notificationMessages];
+    updatedNotifications[index].seen = true;
+    setNotificationMessages(updatedNotifications);
+  };
+    
+  const handleNotificationClick = (index: number) => {
+    setNotificationMessages((prevNotifications) => {
+      const updatedNotifications = [...prevNotifications];
+      if (!updatedNotifications[index].seen) {
+        updatedNotifications[index].seen = true;
+        setNewNotificationsCount((prevCount) => prevCount - 1); // Décrémente seulement quand un message est vu
+      }
+      return updatedNotifications;
+    });
+  };
+  
 
   const navigateToPatientActions = (patient: any) => {
     history.push({
@@ -259,17 +392,11 @@ const clearStorage = async () => {
 
   const navigateToEditPatient = (patient: any) => {
     history.push({
-      pathname: `/patient-form`,
+      pathname: '/patient-form',  // Utilisez des guillemets autour de la chaîne
       state: { patient },
     });
   };
-
   
-  
-  
-  
-  
-
   const clearSpecificData = async (key: string) => {
     try {
       await AsyncStorage.removeItem(key); // Supprimer la clé spécifique
@@ -279,14 +406,23 @@ const clearStorage = async () => {
     }
   };
 
- const handleRefresh = async (event: CustomEvent) => {
-  await getPatients();
-  event.detail.complete();
-};
+  const handleRefresh = async (event: CustomEvent) => {
+    try {
+      // Appeler la fonction pour récupérer les patients
+      await getPatients();
+    } catch (error) {
+      console.error("Erreur lors de la récupération des patients lors du rafraîchissement:", error);
+    } finally {
+      // Appeler complete() après avoir fini le processus, même si une erreur se produit
+      event.detail.complete();
+    }
+  };
+  ;
 
 
-  const navigateToAddPatient = () => {
+  const navigateToAddPatient = async () => {
     history.push('/patient-form');
+    await performHeavyTask();
   };
 
   const handleMenuNotificationClick = () => {
@@ -332,20 +468,24 @@ const clearStorage = async () => {
         </IonHeader>
         <IonContent>
           <IonList>
-            <IonItem button onClick={handleMenuNotificationClick}>
-              <IonIcon icon={notifications} slot="start" />
-              <IonLabel>Notifications</IonLabel>
-              {newNotificationsCount > 0 && (
-                <IonBadge color="danger" slot="end">{newNotificationsCount}</IonBadge>
-              )}
-            </IonItem>
+          <IonMenuToggle auto-hide="false">
+          <IonItem button onClick={handleMenuNotificationClick}>
+            <IonIcon icon={notifications} slot="start" />
+            <IonLabel>Notifications</IonLabel>
+            {newNotificationsCount > 0 && (
+              <IonBadge color="danger" slot="end">{newNotificationsCount}</IonBadge>
+            )}
+          </IonItem>
+          </IonMenuToggle>
+          <IonMenuToggle auto-hide="false">
             <IonItem button onClick={() => history.push('/message')}>
               <IonIcon icon={chatbox} slot="start" />
               <IonLabel>Message</IonLabel>
             </IonItem>
+          </IonMenuToggle>
             <IonMenuToggle auto-hide="false">
-            <IonItem routerLink="/consultations" routerDirection="none">
-              <IonIcon slot="start" icon={calendar} />
+            <IonItem button onClick={() => history.push('/Consultations')}>
+              <IonIcon icon={calendar} slot="start" />
               <IonLabel>Consultations</IonLabel>
             </IonItem>
           </IonMenuToggle>
@@ -383,12 +523,12 @@ const clearStorage = async () => {
                 <IonAvatar slot="start">
                   <img src={patient.rappel || 'https://via.placeholder.com/150'} alt={`${patient.nom} ${patient.prenom}`} />
                 </IonAvatar>
-                <IonLabel onClick={() => history.push(`/patient-details`, { state: { patient } })}>
+                <IonLabel onClick={() => navigateToPatientActions(patient)}>
                   <h2>{`${patient.nom} ${patient.prenom}`}</h2>
                   <p>{`tel: ${patient.telephone}`}</p>
                 </IonLabel>
 
-                <IonIcon icon={pencil} slot="end" onClick={() => history.push(`/patient-form`, { state: { patient } })} />
+                <IonIcon icon={pencil} slot="end" onClick={() => navigateToEditPatient(patient)} />
                 <IonIcon icon={trash} slot="end" onClick={() => deletePatient(patient)} />
                 
               </IonItem>
@@ -430,21 +570,20 @@ const clearStorage = async () => {
           </IonToolbar>
         </IonHeader>
         <IonContent>
-          <IonList>
-            {notificationMessages.length > 0 ? (
-              notificationMessages.map((notification, index) => (
-                <IonItem key={index}>
-                  <IonLabel onClick={() => handleMenuMessageClick(notification.phone)}>
-                    {notification.message}
-                  </IonLabel>
-                  <IonIcon icon={checkmarkCircle} slot="end" onClick={() => deleteNotification(index)} />
-                </IonItem>
-              ))
-            ) : (
-              <p>No notifications.</p>
-            )}
-          </IonList>
-        </IonContent>
+      <IonList>
+        {notificationMessages.length > 0 ? (
+          notificationMessages.map((notification, index) => (
+            <IonItem key={index} onClick={() => markNotificationAsSeen(index)}>
+                <IonLabel>{notification.message}</IonLabel>
+                {!notification.seen && <IonBadge color="danger">Nouveau</IonBadge>}
+              </IonItem>
+          ))
+        ) : (
+          <p>No notifications.</p>
+        )}
+      </IonList>
+      
+    </IonContent>
       </IonModal>
 
       <IonToast

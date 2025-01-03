@@ -92,6 +92,25 @@ const PatientForm: React.FC = () => {
     }
   }, [patient.ddr]);
 
+  const addPatient = async (patient: any) => {
+    try {
+      // Obtenir les patients existants
+      const existingPatients = await AsyncStorage.getItem('patients') || '[]';
+      const patients = JSON.parse(existingPatients);
+      
+      // Ajouter le nouveau patient
+      patients.push(patient);
+      
+      // Compresser et stocker les patients
+      const compressedData = JSON.stringify(patients); // Vous pouvez ici compresser les données si nécessaire
+      await AsyncStorage.setItem('patients', compressedData);
+      
+      console.log('Patient ajouté et données stockées.');
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout du patient:', error);
+    }
+  };
+
   const handleInputChange = (field: string, value: any) => {
     setPatient({ ...patient, [field]: value });
   };
@@ -173,8 +192,9 @@ const PatientForm: React.FC = () => {
     }
   };
   
-
-  const handleSubmit = async () => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault(); 
+    // Vérification de la validité des champs
     if (
       !patient.telephone || !patient.nom || !patient.prenom || !patient.age || !patient.marie || !patient.region || !patient.district_sanitaire ||
       !patient.formation_sanitaire || !patient.niveau_instruction || !patient.profession_femme || !patient.profession_mari ||
@@ -188,24 +208,23 @@ const PatientForm: React.FC = () => {
     }
   
     try {
-      const storedPatients = await getData('patients');
-      let patients = storedPatients ? storedPatients : [];
-  
-      // Ajouter ou mettre à jour le patient
       if (isEdit) {
-        const index = patients.findIndex((p: Patient) => p.telephone === patient.telephone);
-        if (index !== -1) {
-          patients[index] = patient;
-        }
+        // Logique pour modifier le patient
+        await updatePatient(patient);
+        setToastMessage('Patient modifié avec succès!');
       } else {
-        patients.push(patient);
+        // Logique pour ajouter un nouveau patient
+        await addPatient(patient);
+        setToastMessage('Patient ajouté avec succès!');
       }
   
-      await storeData('patients', patients);
-      setToastMessage(isEdit ? 'Patient modifié avec succès!' : 'Patient ajouté avec succès!');
       setToastColor('success');
       setShowToast(true);
+  
+      // Réinitialiser le formulaire après l'ajout ou la modification
       setPatient(initialPatient);
+  
+      // Redirection vers la page d'accueil
       history.push('/home');
     } catch (error) {
       console.error("Erreur lors de l'enregistrement des patients:", error);
@@ -214,6 +233,21 @@ const PatientForm: React.FC = () => {
       setShowToast(true);
     }
   };
+  
+  
+  // Fonction pour mettre à jour un patient existant
+const updatePatient = async (updatedPatient: any) => {
+  const patients = await AsyncStorage.getItem('patients');
+  const parsedPatients = patients ? JSON.parse(patients) : [];
+  const index = parsedPatients.findIndex((p: any) => p.telephone === updatedPatient.telephone);
+  
+  if (index !== -1) {
+    parsedPatients[index] = updatedPatient;
+    await AsyncStorage.setItem('patients', JSON.stringify(parsedPatients));
+  } else {
+    throw new Error("Patient not found");
+  }
+};
   
   
 
@@ -653,29 +687,19 @@ const PatientForm: React.FC = () => {
       )}
 
       {step === 3 && (
-        <IonButton expand="block" onClick={handleSubmit}>
-          {isEdit ? 'Modifier' : 'Ajouter'}
-        </IonButton>
+       <form onSubmit={handleSubmit}>
+       {/* Ton formulaire avec les champs ici */}
+       <IonButton expand="block" type="submit">
+         {isEdit ? 'Modifier' : 'Ajouter'}
+       </IonButton>
+     </form>
       )}
     </IonCol>
   </IonRow>
 
   {/* Bouton Supprimer, si en mode édition */}
-  {isEdit && (
-    <IonRow>
-      <IonCol size="12">
-        <IonButton expand="block" color="danger" onClick={() => setShowDeleteAlert(true)}>
-          Annuler
-        </IonButton>
-      </IonCol>
-    </IonRow>
-  )}
+ 
 </div>
-
-
-
-        
-      
 
         <IonToast
           isOpen={showToast}

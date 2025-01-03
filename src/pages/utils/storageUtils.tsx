@@ -16,16 +16,17 @@ const base64ToUint8Array = (base64: string): Uint8Array => {
 export const compressData = (data: any): string => {
   try {
     console.log('Données avant compression:', data);
-    const stringifiedData = JSON.stringify(data);
-    const compressedData = pako.deflate(stringifiedData);
-    const base64Data = uint8ArrayToBase64(compressedData);
-    console.log('Données après compression:', base64Data);
+    const stringifiedData = JSON.stringify(data); // Transformer en chaîne JSON
+    const compressedData = pako.deflate(stringifiedData); // Compresser les données
+    const base64Data = uint8ArrayToBase64(compressedData); // Convertir en base64
+    console.log('Données après compression:', base64Data); // Vérifier la chaîne base64
     return base64Data;
   } catch (e) {
     console.error('Erreur lors de la compression des données:', e);
     throw new Error('Erreur de compression des données');
   }
 };
+
 
 // Fonction pour décompresser les données
 export const decompressData = (compressedData: string): any => {

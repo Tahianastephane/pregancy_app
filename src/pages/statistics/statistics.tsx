@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonCard, IonCardHeader, IonCardTitle, IonCardContent, IonList, IonItem, IonLabel, IonIcon } from '@ionic/react';
+import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonCard, IonCardHeader, IonCardTitle, IonCardContent, IonList, IonItem, IonLabel, IonButtons, IonMenuButton, IonBackButton, IonGrid, IonRow, IonCol } from '@ionic/react';
 import { calendar, checkmarkCircle, alertCircle } from 'ionicons/icons';
 import { addMonths, isBefore } from 'date-fns';
 
@@ -74,13 +74,28 @@ const Statistics: React.FC = () => {
     <IonPage>
       <IonHeader>
         <IonToolbar>
+          <IonButtons slot="start">
+            <IonBackButton defaultHref="/home" />
+          </IonButtons>
           <IonTitle>Statistics</IonTitle>
         </IonToolbar>
       </IonHeader>
       <IonContent className="ion-padding">
-        {renderStatisticsCard('Patients Added Per Day', patientsPerDay)}
-        {renderStatisticsCard('Appointments Done Per Day', appointmentsDonePerDay)}
-        {renderStatisticsCard('Appointments Missed Per Day', appointmentsMissedPerDay)}
+        <IonGrid>
+          <IonRow>
+            <IonCol size="6">
+              {renderStatisticsCard('Patients Added Per Day', patientsPerDay)}
+            </IonCol>
+            <IonCol size="6">
+              {renderStatisticsCard('Appointments Done Per Day', appointmentsDonePerDay)}
+            </IonCol>
+          </IonRow>
+          <IonRow>
+            <IonCol size="12">
+              {renderStatisticsCard('Appointments Missed Per Day', appointmentsMissedPerDay)}
+            </IonCol>
+          </IonRow>
+        </IonGrid>
       </IonContent>
     </IonPage>
   );

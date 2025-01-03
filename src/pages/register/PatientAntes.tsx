@@ -172,7 +172,7 @@ const PatientAntes: React.FC = () => {
 
         {/* Bouton conditionnel basé sur si l'antécédent est ajouté ou non */}
         <IonButton expand="full" onClick={handleSubmit}>
-          {isAntecedentAdded ? 'Voir Antécédent' : 'Ajouter Antécédent'}
+          Ajouter antecefdante
         </IonButton>
 
       </IonContent>

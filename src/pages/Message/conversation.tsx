@@ -1,30 +1,40 @@
 import React, { useState } from 'react';
-import {
-  IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
-  IonContent,
-  IonItem,
-  IonLabel,
-  IonInput,
-  IonButton,
-  IonList,
-  IonText,
-  IonButtons,
-  IonBackButton,
-  IonIcon,
-  IonAvatar
-} from '@ionic/react';
+import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonText, IonList, IonItem, IonLabel, IonButton, IonInput, IonIcon, IonAvatar, IonBackButton, IonButtons } from '@ionic/react';
 import { useLocation } from 'react-router-dom';
-import { send } from 'ionicons/icons'; // Icône pour le bouton d'envoi
-import { Plugins } from '@capacitor/core';
-const { Sms } = Plugins;
- 
+import { SMS } from '@ionic-native/sms';
+import { send } from 'ionicons/icons'; // Assurez-vous d'importer l'icône de l'envoi
+
+interface LocationState {
+  patient: {
+    nom: string;
+    prenom: string;
+    telephone: string;
+  };
+}
 
 const ConversationPage: React.FC = () => {
   const location = useLocation();
-  const { patient } = location.state as { patient: any };
+
+  // Vérifier si location.state existe avant de le déstructurer
+  const patient = location.state ? (location.state as LocationState).patient : null;
+
+  // Si patient est nul, retourner un message d'erreur ou rediriger
+  if (!patient) {
+    return (
+      <IonPage>
+        <IonHeader>
+          <IonToolbar>
+            <IonTitle>Erreur</IonTitle>
+          </IonToolbar>
+        </IonHeader>
+        <IonContent>
+          <IonText color="danger">
+            <p>Erreur : Aucun patient trouvé.</p>
+          </IonText>
+        </IonContent>
+      </IonPage>
+    );
+  }
 
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<string[]>([]);
@@ -35,19 +45,32 @@ const ConversationPage: React.FC = () => {
       // Ajouter le message localement
       setMessages((prevMessages) => [...prevMessages, `Me: ${message}`]);
       setMessage('');
-
+  
+      // Construire le message de bienvenue personnalisé avec le nom du patient
+      const welcomeMessage = `Bonjour ${patient.nom} ${patient.prenom}, c'est le Pregnancy App. ${message}`;
+  
+      // Ajouter l'indicatif international (+261 pour Madagascar)
+      let phoneNumber = patient.telephone;
+      if (!phoneNumber.startsWith('+')) {
+        phoneNumber = '+261' + phoneNumber.substring(1); // Suppose que le numéro commence par un 0
+      }
+  
       try {
-        // Envoi du message via le plugin SMS
-        await Sms.send({
-          phoneNumber: patient.telephone,
-          message: message,
+        // Envoi du message via le plugin SMS avec le message de bienvenue
+        await SMS.send(phoneNumber, welcomeMessage, {
+          replaceLineBreaks: false,
+          android: {
+            intent: 'INTENT', // Ou 'SEND' pour envoyer directement
+          },
         });
         console.log("Message envoyé avec succès!");
+        setMessages((prevMessages) => [...prevMessages, `Vous: ${welcomeMessage}`]); // Ajouter le message dans l'interface
       } catch (error) {
         console.error("Erreur lors de l'envoi du message: ", error);
       }
     }
   };
+  
 
   return (
     <IonPage>

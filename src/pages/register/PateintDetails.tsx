@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonLabel, IonItem, IonButton, IonButtons, IonBackButton, IonGrid, IonRow, IonCol } from '@ionic/react';
+import React, { useState, useEffect, useRef } from 'react';
+import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonLabel, IonItem, IonButton, IonButtons, IonBackButton, IonGrid, IonRow, IonCol, IonModal, IonCheckbox, IonInput } from '@ionic/react';
 import { useLocation, useHistory } from 'react-router-dom';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -63,9 +63,9 @@ const PatientDetails: React.FC = () => {
 
   const [isAntecedentAdded, setIsAntecedentAdded] = useState<boolean>(false); // État pour savoir si l'antécédent est ajouté
   const [patients, setPatients] = useState<any[]>([]);
-  const [showPatientDetails, setShowPatientDetails] = useState<boolean>(false); // État pour contrôler la visibilité des détails du patient
-  const [showAntecedents, setShowAntecedents] = useState<boolean>(false); // État pour contrôler la visibilité des antécédents
-
+  const modalPatientDetails = useRef<HTMLIonModalElement>(null);
+  const modalAntecedents = useRef<HTMLIonModalElement>(null);
+ 
   // Fonction pour récupérer la liste des patients depuis AsyncStorage
 const getPatients = async () => {
     try {
@@ -76,6 +76,9 @@ const getPatients = async () => {
       console.error('Erreur lors de la récupération des patients', error);
     }
   };
+
+  const dismissModalPatientDetails = () => modalPatientDetails.current?.dismiss();
+  const dismissModalAntecedents = () => modalAntecedents.current?.dismiss();
 
   // Vérifier si l'antécédent existe déjà pour ce patient
   useEffect(() => {
@@ -130,6 +133,14 @@ const addAntecedent = async () => {
     }
   };
 
+  const handleChange = (e: any, field: string) => {
+    setAnswers({
+      ...answers,
+      [field]: e.detail.checked,
+    });
+  };
+  
+
   const handleSubmit = async () => {
     await addAntecedent();
     history.push({
@@ -167,14 +178,20 @@ const addAntecedent = async () => {
         </IonToolbar>
       </IonHeader>
       <IonContent className="ion-padding">
-        <button onClick={() => setShowPatientDetails(!showPatientDetails)}>
-        <IonButton expand="full" onClick={() => setShowPatientDetails(!showPatientDetails)}>
+        <IonButton expand="block" onClick={() => modalPatientDetails.current?.present()}>
           Détails de {patient.nom} {patient.prenom}
         </IonButton>
-        </button>
-        {showPatientDetails && (
-          <>
-            <IonItem>
+        <IonModal ref={modalPatientDetails}>
+          <IonHeader>
+            <IonToolbar>
+              <IonTitle>Détails du Patient</IonTitle>
+              <IonButtons slot="end">
+                <IonButton onClick={dismissModalPatientDetails}>Fermer</IonButton>
+              </IonButtons>
+            </IonToolbar>
+          </IonHeader>
+          <IonContent className="ion-padding">
+           <IonItem>
               <IonLabel>Nom: {patient.nom}</IonLabel>
             </IonItem>
             <IonItem>
@@ -231,73 +248,66 @@ const addAntecedent = async () => {
             <IonItem>
               <IonLabel>CPN1: {patient.cpn1}</IonLabel>
             </IonItem>
-         
-          </>
-        )}
+            </IonContent>
+         </IonModal>
 
-        <button onClick={() => setShowAntecedents(!showAntecedents)}>
-          <h2>Antécédents de {patient.nom}</h2>
-        </button>
-        {showAntecedents && (
-          <>
-            <IonGrid>
-              <IonRow>
-                <IonCol>
-                  <IonItem>
-                    <IonLabel>Âge inférieur à 18 ans: {answers.ageInferieur18Ans ? 'Oui' : 'Non'}</IonLabel>
-                  </IonItem>
-                  <IonItem>
-                    <IonLabel>Âge supérieur à 38 ans: {answers.ageSuperieur38Ans ? 'Oui' : 'Non'}</IonLabel>
-                  </IonItem>
-                  <IonItem>
-                    <IonLabel>Primipare âgée de plus de 35 ans: {answers.primipareAgeePlus35Ans ? 'Oui' : 'Non'}</IonLabel>
-                  </IonItem>
-                  <IonItem>
-                    <IonLabel>Parité supérieure à 5: {answers.pariteSuperieure5 ? 'Oui' : 'Non'}</IonLabel>
-                  </IonItem>
-                  <IonItem>
-                    <IonLabel>Dernier accouchement il y a moins de 2 ans: {answers.dernierAccouchementMoins2Ans ? 'Oui' : 'Non'}</IonLabel>
-                  </IonItem>
-                  <IonItem>
-                    <IonLabel>Bassin rétréci ou asymétrique: {answers.bassinRetreciAsymetrique ? 'Oui' : 'Non'}</IonLabel>
-                  </IonItem>
-                  <IonItem>
-                    <IonLabel>TA supérieure à 148/100: {answers.taSup148 ? 'Oui' : 'Non'}</IonLabel>
-                  </IonItem>
-                  <IonItem>
-                    <IonLabel>Diabète: {answers.diabete ? 'Oui' : 'Non'}</IonLabel>
-                  </IonItem>
-                </IonCol>
-                <IonCol>
-                  <IonItem>
-                    <IonLabel>Dyspnée: {answers.dyspnee ? 'Oui' : 'Non'}</IonLabel>
-                  </IonItem>
-                  <IonItem>
-                    <IonLabel>Intervention chirurgicale utérine: {answers.intervention ? 'Oui' : 'Non'}</IonLabel>
-                  </IonItem>
-                  <IonItem>
-                    <IonLabel>Grossesse gémellaire: {answers.grossesseGemellaire ? 'Oui' : 'Non'}</IonLabel>
-                  </IonItem>
-                  <IonItem>
-                    <IonLabel>Antécédent de mort-né: {answers.mortNe ? 'Oui' : 'Non'}</IonLabel>
-                  </IonItem>
-                  <IonItem>
-                    <IonLabel>Antécédent de fausses couches: {answers.faussesCouches ? 'Oui' : 'Non'}</IonLabel>
-                  </IonItem>
-                  <IonItem>
-                    <IonLabel>Habitude particulière (alcoolisme, tabagisme): {answers.habitude ? 'Oui' : 'Non'}</IonLabel>
-                  </IonItem>
-                  <IonItem>
-                    <IonLabel>Autre antécédent: {answers.autreAntecedent}</IonLabel>
-                  </IonItem>
-                </IonCol>
-              </IonRow>
-            </IonGrid>
-            <IonButton expand="full" onClick={handleSubmit}>
-              {isAntecedentAdded ? 'Mettre à jour les antécédents' : 'Ajouter Antécédent'}
-            </IonButton>
-          </>
-        )}
+
+         <IonButton expand="block" onClick={() => modalAntecedents.current?.present()}>
+  Antécédents de {patient.nom}
+</IonButton>
+<IonModal ref={modalAntecedents}>
+  <IonHeader>
+    <IonToolbar>
+      <IonTitle>Antécédents</IonTitle>
+      <IonButtons slot="end">
+        <IonButton onClick={dismissModalAntecedents}>Fermer</IonButton>
+      </IonButtons>
+    </IonToolbar>
+  </IonHeader>
+  <IonContent className="ion-padding">
+    <IonGrid>
+    {[{ label: 'Age inférieur à 18 ans', field: 'ageInferieur18Ans' },
+            { label: 'Age supérieur à 38 ans', field: 'ageSuperieur38Ans' },
+            { label: 'Primipare âgée de plus de 35 ans', field: 'primipareAgeePlus35Ans' },
+            { label: 'Parité supérieure à 5', field: 'pariteSuperieure5' },
+            { label: 'Dernier accouchement il y a moins de 2 ans', field: 'dernierAccouchementMoins2Ans' },
+            { label: 'Bassin rétréci asymétrique', field: 'bassinRetreciAsymetrique' },
+            { label: 'TA supérieure à 14/8', field: 'taSup148' },
+            { label: 'Diabète', field: 'diabete' },
+            { label: 'Dyspnée', field: 'dyspnee' },
+            { label: 'Intervention chirurgicale', field: 'intervention' },
+            { label: 'Grossesse gemellaire', field: 'grossesseGemellaire' },
+            { label: 'Antécédents médicaux', field: 'antecedent' },
+            { label: 'Mort-né', field: 'mortNe' },
+            { label: 'Fausses couches', field: 'faussesCouches' },
+            { label: 'Habitude', field: 'habitude' }].map(({ label, field }) => (
+            <IonRow key={field}>
+              <IonCol size="6">
+                <IonLabel>{label}</IonLabel>
+              </IonCol>
+              <IonCol size="3">
+                <IonCheckbox
+                  checked={answers[field]}
+                  onIonChange={() => handleCheckboxChange(field, true)}
+                />
+                <IonLabel>Oui</IonLabel>
+              </IonCol>
+              <IonCol size="3">
+                <IonCheckbox
+                  checked={!answers[field]}
+                  onIonChange={() => handleCheckboxChange(field, false)}
+                />
+                <IonLabel>Non</IonLabel>
+              </IonCol>
+            </IonRow>
+          ))}
+    </IonGrid>
+    <IonButton expand="full" onClick={handleSubmit}>
+      {isAntecedentAdded ? 'Mettre à jour les antécédents' : 'Ajouter Antécédent'}
+    </IonButton>
+  </IonContent>
+</IonModal>
+
       </IonContent>
     </IonPage>
   );

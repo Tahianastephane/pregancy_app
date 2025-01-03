@@ -126,5 +126,52 @@ export const getMessages = async (): Promise<any> => {
   return await getData('messages');
 };
 
+
+
+// **Modèle pour les Rendez-vous**
+interface RendezVous {
+  id_patient: string; // L'ID du patient, en l'occurrence son numéro de téléphone
+  date: string; // La date du rendez-vous
+  isCompleted: boolean | null; // Rendez-vous effectué (null signifie que ce n'est ni fait ni non fait)
+  notes: string; // Notes pour chaque rendez-vous
+}
+
+// **Fonctions spécifiques pour la gestion des rendez-vous**
+export const saveRendezVous = async (rendezVous: RendezVous): Promise<void> => {
+  const rendezvousList = await getRendezVous(); // Récupérer la liste des rendez-vous existants
+  const updatedRendezvousList = rendezvousList ? [...rendezvousList, rendezVous] : [rendezVous];
+  await storeData('rendezvous', updatedRendezvousList); // Sauvegarder les nouveaux rendez-vous
+};
+
+// Récupérer tous les rendez-vous associés à un patient
+export const getRendezVous = async (): Promise<RendezVous[]> => {
+  const rendezvous = await getData('rendezvous');
+  return rendezvous || []; // Si aucun rendez-vous n'est trouvé, retourner un tableau vide
+};
+
+// Récupérer les rendez-vous d'un patient spécifique
+export const getRendezVousByPatient = async (id_patient: string): Promise<RendezVous[]> => {
+  const rendezvousList = await getRendezVous();
+  return rendezvousList.filter(rdv => rdv.id_patient === id_patient);
+};
+
+// Mettre à jour un rendez-vous spécifique
+export const updateRendezVous = async (rendezVous: RendezVous): Promise<void> => {
+  const rendezvousList = await getRendezVous();
+  const updatedRendezvousList = rendezvousList.map(rdv =>
+    rdv.id_patient === rendezVous.id_patient && rdv.date === rendezVous.date ? rendezVous : rdv
+  );
+  await storeData('rendezvous', updatedRendezvousList); // Sauvegarder les changements
+};
+
+// Exemple de fonction pour enregistrer un patient avec ses rendez-vous
+export const savePatientWithRendezVous = async (patient: any, rendezVous: RendezVous[]): Promise<void> => {
+  const patients = await getData('patients');
+  const updatedPatients = patients ? { ...patients, [patient.telephone]: { ...patient, rendezVous } } : { [patient.telephone]: { ...patient, rendezVous } };
+  await storeData('patients', updatedPatients); // Sauvegarder le patient avec ses rendez-vous
+};
+
+
+
 // Initialiser l'administrateur par défaut
 initializeAdmin();

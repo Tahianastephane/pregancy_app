@@ -51,6 +51,8 @@ import VoirAntecedent from './pages/register/PatientAntesVoir';
 import MessagePage from './pages/Message/message';
 import ConversationPage from './pages/Message/conversation';
 import Statistics from './pages/statistics/statistics';
+import Consultations from './pages/consultaitons/Consultations';
+import RendezVousPage from './pages/consultaitons/consultaionsdetails';
 
 
 setupIonicReact();
@@ -69,7 +71,10 @@ const App: React.FC = () => (
         <Route exact path="/message" component={MessagePage} />
         <Route exact path="/conversation" component={ConversationPage} />
         <Route exact path="/statistics" component={ Statistics} />
-        
+        <Route exact path="/Consultations" component={ Consultations} />
+        <Route exact path="/RendezVousPage" component={ RendezVousPage} />
+        <Route path="/RendezVousPage/:patientId" component={RendezVousPage} />
+
         <Route exact path="/" render={() => <Redirect to="/login" />} />
         
       </IonRouterOutlet>
