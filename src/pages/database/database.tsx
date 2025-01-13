@@ -48,7 +48,30 @@ interface Patient {
   prenom: string;
   age: number;
   marie: 'oui' | 'non';
-  region: string;
+  region: 
+    | 'Antananarivo'
+    | 'Antsiranana'
+    | 'Fianarantsoa'
+    | 'Mahajanga'
+    | 'Toamasina'
+    | 'Toliara'
+    | 'Vakinankaratra'
+    | 'Amoron\'i Mania'
+    | 'Analamanga'
+    | 'Atsinanana'
+    | 'Haute Matsiatra'
+    | 'Ihorombe'
+    | 'Itasy'
+    | 'Melaky'
+    | 'Sava'
+    | 'Sofia'
+    | 'Atsimo-Andrefana'
+    | 'Androy'
+    | 'Anosy'
+    | 'Bongolava'
+    | 'Boeny'
+    | 'Menabe'
+    | 'Analanjirofo'; // champ region
   district_sanitaire: string;
   formation_sanitaire: string;
   niveau_instruction: string;
@@ -57,7 +80,7 @@ interface Patient {
   adresse: string;
   commune: string;
   date_dernier_accouchement: string;
-  nombre_enfants_vivants: number;
+  nombre_enfants_vivants: string;
   gestite: number;
   parite: number;
   ddr: string;

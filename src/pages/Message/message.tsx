@@ -44,21 +44,47 @@ const MessagePage: React.FC = () => {
         </IonToolbar>
       </IonHeader>
       <IonContent className="ion-padding">
-        <IonList>
-          {patients.map((patient, index) => (
-            <IonItem key={index} button onClick={() => handleConversationClick(patient)}>
-              <IonAvatar slot="start">
-                {/* Affiche l'avatar du patient ou une image par défaut */}
-                <img src={patient.rappel|| 'https://via.placeholder.com/150'} alt={`${patient.nom} ${patient.prenom}`} />
-              </IonAvatar>
-              <IonLabel>
-                <h2>{`${patient.nom} ${patient.prenom}`}</h2>
-                <p>{`Numéro: ${patient.telephone}`}</p>
-              </IonLabel>
-              <IonIcon icon={chatbox} slot="end" />
-            </IonItem>
-          ))}
-        </IonList>
+      <IonList>
+  {patients.map((patient, index) => {
+    // Générer les initiales à partir du nom et prénom
+    const initiales = `${patient.nom?.charAt(0) || ''}${patient.prenom?.charAt(0) || ''}`.toUpperCase();
+
+    return (
+      <IonItem key={index} button onClick={() => handleConversationClick(patient)}>
+        <IonAvatar slot="start">
+          {patient.rappel ? (
+            // Si une image d'avatar est disponible
+            <img src={patient.rappel} alt={`${patient.nom} ${patient.prenom}`} />
+          ) : (
+            // Sinon, afficher les initiales dans un cercle
+            <div
+              style={{
+                backgroundColor: '#ccc',
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 'bold',
+                fontSize: '18px',
+                height: '100%',
+                width: '100%',
+                borderRadius: '50%',
+              }}
+            >
+              {initiales}
+            </div>
+          )}
+        </IonAvatar>
+        <IonLabel>
+          <h2>{`${patient.nom} ${patient.prenom}`}</h2>
+          <p>{`Numéro: ${patient.telephone}`}</p>
+        </IonLabel>
+        <IonIcon icon={chatbox} slot="end" />
+      </IonItem>
+    );
+  })}
+</IonList>
+
       </IonContent>
     </IonPage>
   );

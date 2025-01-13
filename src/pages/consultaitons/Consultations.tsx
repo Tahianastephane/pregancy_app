@@ -203,22 +203,49 @@ const saveRendezVous = async (patient: Patient) => {
           <IonButtons slot="start">
             <IonBackButton defaultHref="/home" />
           </IonButtons>
-          <IonTitle>Consultations des patients</IonTitle>
+          <IonTitle>Consultations des patientes</IonTitle>
         </IonToolbar>
       </IonHeader>
       <IonContent>
-    <IonList>
-      {patients.map((patient) => (
-        <IonItem key={patient.telephone} button onClick={() => handlePatientClick(patient)}>
-          <IonAvatar slot="start">
+      <IonList>
+  {patients.map((patient) => {
+    // Générer les initiales à partir du nom et prénom
+    const initiales = `${patient.nom?.charAt(0) || ''}${patient.prenom?.charAt(0) || ''}`.toUpperCase();
+
+    return (
+      <IonItem key={patient.telephone} button onClick={() => handlePatientClick(patient)}>
+        <IonAvatar slot="start">
+          {patient.rappel ? (
+            // Si une image d'avatar est disponible
             <img src={patient.rappel} alt={`${patient.nom} ${patient.prenom}`} />
-          </IonAvatar>
-          <IonLabel>
-            {patient.nom} {patient.prenom}
-          </IonLabel>
-        </IonItem>
-      ))}
-    </IonList>
+          ) : (
+            // Sinon, afficher les initiales dans un cercle
+            <div
+              style={{
+                backgroundColor: '#ccc',
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 'bold',
+                fontSize: '18px',
+                height: '100%',
+                width: '100%',
+                borderRadius: '50%',
+              }}
+            >
+              {initiales}
+            </div>
+          )}
+        </IonAvatar>
+        <IonLabel>
+          {patient.nom} {patient.prenom}
+        </IonLabel>
+      </IonItem>
+    );
+  })}
+</IonList>
+
 
     {selectedPatient && (
       <IonModal isOpen={showModal} onDidDismiss={closeModal}>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonButton, IonItem, IonLabel, IonInput, IonSelect, IonSelectOption, IonCard, IonCardHeader, IonCardTitle, IonList, IonToast, IonAlert, IonButtons, IonBackButton, IonRow, IonCol } from '@ionic/react';
+import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonButton, IonItem, IonLabel, IonInput, IonSelect, IonSelectOption, IonCard, IonCardHeader, IonCardTitle, IonList, IonToast, IonAlert, IonButtons, IonBackButton, IonRow, IonCol, IonIcon } from '@ionic/react';
 import { useHistory, useLocation } from 'react-router-dom';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Avatar from 'react-avatar';
@@ -7,6 +7,7 @@ import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { motion } from 'framer-motion';
 import { storeData, getData, compressData, decompressData } from '../utils/storageUtils'; // Importer les fonctions de compression et de décompression
 import imageCompression from 'browser-image-compression';
+import { arrowDown, arrowUp } from 'ionicons/icons';
 
 
 interface Patient {
@@ -27,7 +28,7 @@ interface Patient {
   nombre_enfants_vivants: number;
   gestite: number;
   parite: number;
-  ddr: string | undefined;
+  ddr: string ;
   dpa: string;
   cpn1: number;
   rappel: string;
@@ -191,10 +192,7 @@ const PatientForm: React.FC = () => {
       return null;
     }
   };
-  
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault(); 
-    // Vérification de la validité des champs
+  const handleSubmit = async () => {
     if (
       !patient.telephone || !patient.nom || !patient.prenom || !patient.age || !patient.marie || !patient.region || !patient.district_sanitaire ||
       !patient.formation_sanitaire || !patient.niveau_instruction || !patient.profession_femme || !patient.profession_mari ||
@@ -206,35 +204,33 @@ const PatientForm: React.FC = () => {
       setShowToast(true);
       return;
     }
-  
+
     try {
+      const storedPatients = await AsyncStorage.getItem('patients');
+      let patients = storedPatients ? JSON.parse(storedPatients) : [];
+
       if (isEdit) {
-        // Logique pour modifier le patient
-        await updatePatient(patient);
-        setToastMessage('Patient modifié avec succès!');
+        const index = patients.findIndex((p: Patient) => p.telephone === patient.telephone);
+        if (index !== -1) {
+          patients[index] = patient;
+        }
       } else {
-        // Logique pour ajouter un nouveau patient
-        await addPatient(patient);
-        setToastMessage('Patient ajouté avec succès!');
+        patients.push(patient);
       }
-  
+
+      await AsyncStorage.setItem('patients', JSON.stringify(patients));
+      setToastMessage(isEdit ? 'Patient modifié avec succès!' : 'Patient ajouté avec succès!');
       setToastColor('success');
       setShowToast(true);
-  
-      // Réinitialiser le formulaire après l'ajout ou la modification
       setPatient(initialPatient);
-  
-      // Redirection vers la page d'accueil
       history.push('/home');
     } catch (error) {
-      console.error("Erreur lors de l'enregistrement des patients:", error);
+      console.error("Error saving patient:", error);
       setToastMessage('Une erreur est survenue.');
       setToastColor('danger');
       setShowToast(true);
     }
   };
-  
-  
   // Fonction pour mettre à jour un patient existant
 const updatePatient = async (updatedPatient: any) => {
   const patients = await AsyncStorage.getItem('patients');
@@ -426,6 +422,10 @@ const updatePatient = async (updatedPatient: any) => {
           label="Téléphone"
           label-placement="floating"
             fill="solid"
+            type="tel"
+            clearInput={true}
+            maxlength={10} // Limite la longueur à 10
+            required
           placeholder="Entrez le numéro de téléphone"
           value={patient.telephone}
           onIonChange={e => handleInputChange('telephone', e.detail.value!)}
@@ -440,6 +440,7 @@ const updatePatient = async (updatedPatient: any) => {
             >
         <IonInput
           label="Nom"
+          clearInput={true}
           label-placement="floating"
           fill="solid"
           placeholder="Entrez le nom"
@@ -453,64 +454,85 @@ const updatePatient = async (updatedPatient: any) => {
                 label="Prénom"
                 label-placement="floating"
                 fill="solid"
+                clearInput={true}
                 placeholder="Entrez le prénom"
                 value={patient.prenom}
                 onIonChange={e => handleInputChange('prenom', e.detail.value!)}
               />
             </IonItem>
             <IonItem style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-  <motion.div
-    initial={{ opacity: 0, scale: 0.8 }}
-    animate={{ opacity: 1, scale: 1 }}
-    transition={{ duration: 0.5 }}
-    style={{ flex: 1 }} // Utilise l'espace disponible pour l'élément
-  >
-    <IonSelect
-      label="Âge"
-      fill="solid"
-      value={patient.age}
-      onIonChange={e => handleInputChange('age', e.detail.value!)}
-    >
-      {Array.from({ length: 100 }, (_, i) => (
-        <IonSelectOption key={i} value={i + 1}>
-          {i + 1} ans
-        </IonSelectOption>
-      ))}
-    </IonSelect>
-  </motion.div>
-
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.5 }}
-    style={{ flex: 1, textAlign: 'right' }} // Alignement à droite
-  >
-    <IonSelect
-      label="Marié(e)"
-      fill="solid"
-      value={patient.marie}
-      onIonChange={e => handleInputChange('marie', e.detail.value!)}
-    >
-      <IonSelectOption value="Oui">Oui</IonSelectOption>
-      <IonSelectOption value="Non">Non</IonSelectOption>
-    </IonSelect>
-  </motion.div>
-</IonItem>
-            <IonItem>
-            <motion.div 
-        initial={{ opacity: 0, y: 10 }} // Départ avec opacité de 0 et léger décalage vers le bas
-        animate={{ opacity: 1, y: 0 }} // Transition vers une opacité de 1 et une position normale
-        transition={{ duration: 0.5 }}
-      >
-        <IonInput
-          label="Région"
-            label-placement="floating"
-            fill="solid"
-          placeholder="Entrez la région"
-          value={patient.region}
-          onIonChange={e => handleInputChange('region', e.detail.value!)}
-        />
-      </motion.div>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5 }}
+              style={{ flex: 1 }} // Utilise l'espace disponible pour l'élément
+            >
+              <IonSelect
+                label="Âge"
+                fill="solid"
+                value={patient.age}
+                onIonChange={e => handleInputChange('age', e.detail.value!)}
+              >
+                {Array.from({ length: 100 }, (_, i) => (
+                  <IonSelectOption key={i} value={i + 1}>
+                    {i + 1} ans
+                  </IonSelectOption>
+                ))}
+              </IonSelect>
+            </motion.div><motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              style={{ flex: 1, textAlign: 'right' }} ><IonSelect
+                label="Marié(e)"
+                fill="solid"
+                value={patient.marie}
+                onIonChange={e => handleInputChange('marie', e.detail.value!)}
+              >
+                <IonSelectOption value="Oui">Oui</IonSelectOption>
+                <IonSelectOption value="Non">Non</IonSelectOption>
+              </IonSelect>
+            </motion.div>
+          </IonItem>
+                      
+            <IonItem style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+            style={{ flex: 1 }} // Utilise l'espace disponible pour l'élément
+          >
+                <IonSelect
+              label="Région"
+              fill="solid"
+              value={patient.region}
+              onIonChange={e => handleInputChange('region', e.detail.value!)}
+            >
+              <IonSelectOption value="Antananarivo">Antananarivo</IonSelectOption>
+              <IonSelectOption value="Antsiranana">Antsiranana</IonSelectOption>
+              <IonSelectOption value="Fianarantsoa">Fianarantsoa</IonSelectOption>
+              <IonSelectOption value="Mahajanga">Mahajanga</IonSelectOption>
+              <IonSelectOption value="Toamasina">Toamasina</IonSelectOption>
+              <IonSelectOption value="Toliara">Toliara</IonSelectOption>
+              <IonSelectOption value="Vakinankaratra">Vakinankaratra</IonSelectOption>
+              <IonSelectOption value="Amoron'i Mania">Amoron'i Mania</IonSelectOption>
+              <IonSelectOption value="Analamanga">Analamanga</IonSelectOption>
+              <IonSelectOption value="Atsinanana">Atsinanana</IonSelectOption>
+              <IonSelectOption value="Haute Matsiatra">Haute Matsiatra</IonSelectOption>
+              <IonSelectOption value="Ihorombe">Ihorombe</IonSelectOption>
+              <IonSelectOption value="Itasy">Itasy</IonSelectOption>
+              <IonSelectOption value="Melaky">Melaky</IonSelectOption>
+              <IonSelectOption value="Sava">Sava</IonSelectOption>
+              <IonSelectOption value="Sofia">Sofia</IonSelectOption>
+              <IonSelectOption value="Atsimo-Andrefana">Atsimo-Andrefana</IonSelectOption>
+              <IonSelectOption value="Androy">Androy</IonSelectOption>
+              <IonSelectOption value="Anosy">Anosy</IonSelectOption>
+              <IonSelectOption value="Bongolava">Bongolava</IonSelectOption>
+              <IonSelectOption value="Boeny">Boeny</IonSelectOption>
+              <IonSelectOption value="Menabe">Menabe</IonSelectOption>
+              <IonSelectOption value="Analanjirofo">Analanjirofo</IonSelectOption>
+            </IonSelect>
+              </motion.div>
             </IonItem>
           </IonList>
         </IonCard>
@@ -525,31 +547,43 @@ const updatePatient = async (updatedPatient: any) => {
            transition={{ duration: 0.5 }}  // Durée de l'animation
          >
         <IonCard>
-          <IonCardHeader>
+          <IonCardHeader >
             <IonCardTitle>Informations de la Grossesse</IonCardTitle>
           </IonCardHeader>
           <IonList>
-          <IonItem>
+          <IonItem >
               <IonInput
                 label="Date Dernier Accouchement"
                 type="date"
+                clearInput={true}
                 value={patient.date_dernier_accouchement}
+                required
+                labelPlacement="floating"
+                
                 onIonChange={e => handleInputChange('date_dernier_accouchement', e.detail.value!)}
                 placeholder="YYYY-MM-DD" // Affichage du placeholder au format requis
               />
             </IonItem>
+            
             <IonItem>
               <IonInput
                 label="Nombre d'Enfants Vivants"
                 type="number"
+                clearInput={true}
+                required
+                labelPlacement="floating"
                 value={patient.nombre_enfants_vivants.toString()}
                 onIonChange={e => handleInputChange('nombre_enfants_vivants', parseInt(e.detail.value!, 10))}
               />
             </IonItem>
+            
             <IonItem>
               <IonInput
                 label="Gestité"
+                required
+                labelPlacement="floating" 
                 type="number"
+                clearInput={true}
                 value={patient.gestite.toString()}
                 onIonChange={e => handleInputChange('gestite', parseInt(e.detail.value!, 10))}
               />
@@ -557,16 +591,24 @@ const updatePatient = async (updatedPatient: any) => {
             <IonItem>
               <IonInput
                 label="Parité"
+                labelPlacement="floating" 
+                required
+                clearInput={true}
                 type="number"
                 value={patient.parite.toString()}
                 onIonChange={e => handleInputChange('parite', parseInt(e.detail.value!, 10))}
               />
             </IonItem>
-            
+
+
             <IonItem>
               <IonInput
                 label="DDR"
+                clearInput={true}
                 type="date"
+                required
+                labelPlacement="floating"
+                 
                 value={patient.ddr}
                 onIonChange={e => handleInputChange('ddr', e.detail.value!)}
                 placeholder="YYYY-MM-DD" // Affichage du placeholder au format requis
@@ -576,6 +618,10 @@ const updatePatient = async (updatedPatient: any) => {
               <IonInput
                 label="Date Prévue d'Accouchement (DPA)"
                 type="date"
+                clearInput={true}
+                required
+                labelPlacement="floating"
+                 
                 value={patient.dpa}
                 readonly
               />
@@ -585,6 +631,10 @@ const updatePatient = async (updatedPatient: any) => {
               <IonInput
                 label="CPN1"
                 type="number"
+                clearInput={true}
+                required
+                labelPlacement="floating"
+                 
                 value={patient.cpn1.toString()}
                 onIonChange={e => handleInputChange('cpn1', parseInt(e.detail.value!, 10))}
               />
@@ -607,39 +657,78 @@ const updatePatient = async (updatedPatient: any) => {
           </IonCardHeader>
           <IonList>
             <IonItem>
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }} // Commence avec une opacité de 0 et un décalage horizontal
+              animate={{ opacity: 1, x: 0 }} // Transition vers une opacité de 1 et une position normale
+              transition={{ duration: 0.5 }}
+            >
               <IonInput
+                label-placement="floating"
+                fill="solid"
+                clearInput={true}
                 label="District Sanitaire"
                 placeholder="Entrez le district sanitaire"
                 value={patient.district_sanitaire}
                 onIonChange={e => handleInputChange('district_sanitaire', e.detail.value!)}
               />
+              </motion.div>
             </IonItem>
             <IonItem>
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }} // Commence avec une opacité de 0 et un décalage horizontal
+              animate={{ opacity: 1, x: 0 }} // Transition vers une opacité de 1 et une position normale
+              transition={{ duration: 0.5 }}
+            >
               <IonInput
+              label-placement="floating"
+                fill="solid"
+                clearInput={true}
                 label="Formation Sanitaire"
                 placeholder="Entrez la formation sanitaire"
                 value={patient.formation_sanitaire}
                 onIonChange={e => handleInputChange('formation_sanitaire', e.detail.value!)}
               />
+               </motion.div>
             </IonItem>
             <IonItem>
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }} // Commence avec une opacité de 0 et un décalage horizontal
+              animate={{ opacity: 1, x: 0 }} // Transition vers une opacité de 1 et une position normale
+              transition={{ duration: 0.5 }}
+            >
               <IonInput
+              label-placement="floating"
+                fill="solid"
                 label="Niveau Instruction"
+                clearInput={true}
                 placeholder="Entrez le niveau d'instruction"
                 value={patient.niveau_instruction}
                 onIonChange={e => handleInputChange('niveau_instruction', e.detail.value!)}
               />
+              </motion.div>
             </IonItem>
             <IonItem>
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }} // Commence avec une opacité de 0 et un décalage horizontal
+              animate={{ opacity: 1, x: 0 }} // Transition vers une opacité de 1 et une position normale
+              transition={{ duration: 0.5 }}
+            >
               <IonInput
+              label-placement="floating"
+                fill="solid"
+                clearInput={true}
                 label="Profession de la Femme"
                 placeholder="Entrez la profession de la femme"
                 value={patient.profession_femme}
                 onIonChange={e => handleInputChange('profession_femme', e.detail.value!)}
               />
+              </motion.div>
             </IonItem>
             <IonItem>
               <IonInput
+              label-placement="floating"
+                fill="solid"
+                clearInput={true}
                 label="Profession du Mari"
                 placeholder="Entrez la profession du mari"
                 value={patient.profession_mari}
@@ -647,20 +736,38 @@ const updatePatient = async (updatedPatient: any) => {
               />
             </IonItem>
             <IonItem>
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }} // Commence avec une opacité de 0 et un décalage horizontal
+              animate={{ opacity: 1, x: 0 }} // Transition vers une opacité de 1 et une position normale
+              transition={{ duration: 0.5 }}
+            >
               <IonInput
+              label-placement="floating"
+                fill="solid"
                 label="Adresse"
+                clearInput={true}
                 placeholder="Entrez l'adresse"
                 value={patient.adresse}
                 onIonChange={e => handleInputChange('adresse', e.detail.value!)}
               />
+              </motion.div>
             </IonItem>
             <IonItem>
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }} // Commence avec une opacité de 0 et un décalage horizontal
+              animate={{ opacity: 1, x: 0 }} // Transition vers une opacité de 1 et une position normale
+              transition={{ duration: 0.5 }}
+            >
               <IonInput
+              label-placement="floating"
+                fill="solid"
                 label="Commune"
+                clearInput={true}
                 placeholder="Entrez la commune"
                 value={patient.commune}
                 onIonChange={e => handleInputChange('commune', e.detail.value!)}
               />
+              </motion.div>
             </IonItem>
             
           </IonList>
@@ -687,12 +794,9 @@ const updatePatient = async (updatedPatient: any) => {
       )}
 
       {step === 3 && (
-       <form onSubmit={handleSubmit}>
-       {/* Ton formulaire avec les champs ici */}
-       <IonButton expand="block" type="submit">
-         {isEdit ? 'Modifier' : 'Ajouter'}
-       </IonButton>
-     </form>
+       <IonButton expand="full" onClick={handleSubmit}>
+       {isEdit ? 'Modifier' : 'Ajouter'}
+     </IonButton>
       )}
     </IonCol>
   </IonRow>

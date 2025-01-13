@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { IonPage, IonHeader, IonToolbar, IonTitle, IonItem, IonLabel, IonIcon, IonRefresher, IonRefresherContent, IonFabButton, IonMenu, IonContent, IonList, IonMenuButton, IonButtons, IonTabBar, IonTabButton, IonToast, IonModal, IonButton, IonBadge, IonAvatar, IonMenuToggle } from '@ionic/react';
+import { IonPage, IonHeader, IonToolbar, IonTitle, IonItem, IonLabel, IonIcon, IonRefresher, IonRefresherContent, IonFabButton, IonMenu, IonContent, IonList, IonMenuButton, IonButtons, IonTabBar, IonTabButton, IonToast, IonModal, IonButton, IonBadge, IonAvatar, IonMenuToggle, IonItemOption, IonItemOptions, IonItemSliding, IonSearchbar, IonText, IonBackButton } from '@ionic/react';
 import { useHistory } from 'react-router-dom';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { pencil, trash, add, chatbox, colorPalette, home, statsChart, megaphone, notifications, checkmarkCircle, calendar, time } from 'ionicons/icons';
+import { pencil, trash, add, chatbox, colorPalette, home, statsChart, megaphone, notifications, checkmarkCircle, calendar, time, chevronForwardOutline, search } from 'ionicons/icons';
 import { addMonths, isBefore } from 'date-fns';
 import { decompressData ,compressData } from '../utils/storageUtils';
 import * as pako from 'pako';
+import { motion } from 'framer-motion';
 import Consultations from '../consultaitons/Consultations';
 
 type Notification = {
@@ -25,9 +26,13 @@ const Home: React.FC = () => {
     seen: any; message: string, phone: string }[]>([]);
   const [newNotificationsCount, setNewNotificationsCount] = useState(0);
   const history = useHistory();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filteredPatients, setFilteredPatients] = useState<any[]>([]);
+  const [showSearch, setShowSearch] = useState(false);
+  const [isSearchActive, setIsSearchActive] = useState(false); // Contrôle de la recherche
+
 
   
-
   const base64ToUint8Array = (base64: string): Uint8Array => {
     const binaryString = atob(base64);  // Décodage base64 en chaîne binaire
     const byteArray = new Uint8Array(binaryString.length);  // Création d'un tableau d'octets
@@ -36,6 +41,24 @@ const Home: React.FC = () => {
     }
     return byteArray;
   };
+
+  const toggleSearchModal = () => {
+    setIsSearchActive(!isSearchActive);
+  };
+
+   // Filtrage des patients selon le terme de recherche
+   useEffect(() => {
+    if (searchTerm.trim() === '') {
+      setFilteredPatients([]);
+    } else {
+      const results = patients.filter((patient) =>
+        `${patient.nom} ${patient.prenom}`
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase())
+      );
+      setFilteredPatients(results);
+    }
+  }, [searchTerm, patients]);
   
   const isValidBase64 = (str: string): boolean => {
     // Vérifie que la chaîne correspond au format base64
@@ -46,8 +69,6 @@ const Home: React.FC = () => {
     }
   };
   
-  
-
   const getPatients = async () => {
     try {
       const storedPatients = await AsyncStorage.getItem('patients');
@@ -77,8 +98,7 @@ const Home: React.FC = () => {
       setPatients([]);  // Réinitialiser en cas d'erreur
     }
   };
-  
-  
+
   // Fonction pour sauvegarder les patients
   const savePatients = async (patients: any[]) => {
     try {
@@ -89,12 +109,6 @@ const Home: React.FC = () => {
       console.error('Erreur lors de la sauvegarde des patients:', e);
     }
   };
-  
-  
-  
-  
-  
-  
   const addPatient = async (newPatient: any) => {
     // Vérifier si le patient existe déjà
     const patientExists = patients.some(patient => patient.telephone === newPatient.telephone);
@@ -106,25 +120,7 @@ const Home: React.FC = () => {
     } else {
       console.log('Patient déjà existant');
     }
-  };
-  
-
-
-//   const updatePatient = (updatedPatient: any) => {
-//   // Mise à jour dans la base de données locale ou API
-//   const updatedPatientsList = patients.map((patient) =>
-//     patient.id === updatedPatient.id ? updatedPatient : patient
-//   );
-
-//   // Mise à jour de l'état avec la nouvelle liste de patients
-//   setPatients(updatedPatientsList);
-
-//   // Vous pouvez aussi mettre à jour la base de données ici
-//   // Par exemple, avec react-native-sqlite-storage
-// };
-
-  
-  
+  }; 
 const updatedPatient = async (updatedPatient: any) => {
   try {
     // Récupérer les patients stockés
@@ -161,12 +157,6 @@ const updatedPatient = async (updatedPatient: any) => {
     console.error('Erreur lors de la mise à jour du patient:', error);
   }
 };
-
-  
-
-  
-  
-
   // Fonction pour récupérer les patients
   const retrievePatients = async () => {
     try {
@@ -228,18 +218,24 @@ const clearStorage = async () => {
   // Fonction pour supprimer un patient
   const deletePatient = async (telephone: string) => {
     try {
-      console.log('Suppression du patient avec le téléphone:', telephone); // Log du téléphone du patient à supprimer
-      const jsonValue = await AsyncStorage.getItem('@patients');
-      const patients: any[] = jsonValue != null ? JSON.parse(jsonValue) : [];
-      const updatedPatients = patients.filter(patient => patient.telephone !== telephone);
+      console.log('Suppression du patient avec le téléphone:', telephone); // Log pour vérifier le téléphone
+      const jsonValue = await AsyncStorage.getItem('patients'); // Utilisez 'patients' comme clé
+      const storedPatients: any[] = jsonValue ? JSON.parse(jsonValue) : [];
+      
+      // Filtrer les patients pour exclure celui à supprimer
+      const updatedPatients = storedPatients.filter(patient => patient.telephone !== telephone);
+      
+      // Sauvegarder les patients mis à jour dans AsyncStorage
       await savePatients(updatedPatients);
+      
+      // Mettre à jour l'état local
       setPatients(updatedPatients);
+      
       console.log('Patient supprimé avec succès');
-    } catch (e) {
-      console.error('Erreur lors de la suppression du patient:', e);
+    } catch (error) {
+      console.error('Erreur lors de la suppression du patient:', error);
     }
   };
-
   const performHeavyTask = async () => {
     // Simulation d'une tâche lourde
     return new Promise((resolve) => {
@@ -249,16 +245,11 @@ const clearStorage = async () => {
       }, 300);
     });
   };
-  
-  
-
   const resetPatientsStorage = async () => {
     await AsyncStorage.removeItem('patients');
     setPatients([]);  // Mettre à jour l'état des patients
     console.log('Les données des patients ont été réinitialisées.');
-  };
-  
-  
+  }; 
   // Utilisation de la fonction retrievePatients
   useEffect(() => {
     const fetchPatients = async () => {
@@ -294,11 +285,6 @@ const clearStorage = async () => {
     }
   }, [toastMessage]);
   
-  
-  
-
-
- 
   useEffect(() => {
     const checkForNotifications = () => {
       const notifications: Notification[] = [];
@@ -352,14 +338,6 @@ const clearStorage = async () => {
     // Appel de la fonction
     checkForNotifications();
   }, [patients]);
-  
-  
-  
-  
-  
-  
-
- 
 
   const handleNotificationClose = () => {
     setShowNotifications(false);
@@ -408,22 +386,21 @@ const clearStorage = async () => {
 
   const handleRefresh = async (event: CustomEvent) => {
     try {
-      // Appeler la fonction pour récupérer les patients
-      await getPatients();
+      // Recharger la page actuelle pour simuler un rafraîchissement complet (comme F5)
+      window.location.reload();
     } catch (error) {
-      console.error("Erreur lors de la récupération des patients lors du rafraîchissement:", error);
+      console.error("Erreur lors du rafraîchissement:", error);
     } finally {
-      // Appeler complete() après avoir fini le processus, même si une erreur se produit
+      // Appeler complete() pour indiquer que l'action de rafraîchissement est terminée
       event.detail.complete();
     }
   };
-  ;
-
-
+  
   const navigateToAddPatient = async () => {
     history.push('/patient-form');
     await performHeavyTask();
   };
+
 
   const handleMenuNotificationClick = () => {
     setShowNotifications(true);
@@ -441,9 +418,10 @@ const clearStorage = async () => {
     history.push('/statistics');
   };
 
-  const navigateToAdvertisements = () => {
-    history.push('/advertisements');
+  const goToSearchPage = () => {
+    history.push('/recherche');
   };
+
 
   const deleteNotification = (index: number) => {
     // Supprimer la notification par index
@@ -456,7 +434,6 @@ const clearStorage = async () => {
     // Réduire le nombre de notifications non lues
     setNewNotificationsCount((prevCount) => prevCount - 1);
   };
-  
 
   return (
     <>
@@ -505,39 +482,73 @@ const clearStorage = async () => {
             <IonButtons slot="start">
               <IonMenuButton />
             </IonButtons>
-            <IonTitle>Home</IonTitle>
+            <IonTitle>Page d'accueil</IonTitle>
           </IonToolbar>
         </IonHeader>
         <IonContent className="ion-padding">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1.5 }}
+        >
           <IonRefresher slot="fixed" onIonRefresh={handleRefresh}>
             <IonRefresherContent pullingText="Tirer pour rafraîchir" refreshingSpinner="circles" />
           </IonRefresher>
 
-          <h2>{patients.length > 2 ? 'Liste des patients' : 'Liste de patient'}</h2>
+          <h2>{patients.length > 1 ? 'Liste des patientes' : 'Liste de patiente'}</h2>
+
           <p>{storageMessage}</p>
+        
+    <IonList>
+      {patients.length > 0 ? (
+        patients.map((patient, index) => {
+          const initiales = `${patient.nom?.charAt(0) || ''}${patient.prenom?.charAt(0) || ''}`.toUpperCase();
 
-          <IonList>
-          {patients.length > 0 ? (
-            patients.map((patient, index) => (
-              <IonItem key={index}>
-                <IonAvatar slot="start">
-                  <img src={patient.rappel || 'https://via.placeholder.com/150'} alt={`${patient.nom} ${patient.prenom}`} />
-                </IonAvatar>
-                <IonLabel onClick={() => navigateToPatientActions(patient)}>
-                  <h2>{`${patient.nom} ${patient.prenom}`}</h2>
-                  <p>{`tel: ${patient.telephone}`}</p>
-                </IonLabel>
+          return (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 30 }}   // Initialisation de l'animation (invisible, décalé)
+              animate={{ opacity: 1, y: 0 }}     // Animation finale (opacité à 1, décalage à 0)
+              transition={{ delay: index * 0.1, duration: 0.5 }} // Délais pour chaque item et durée de l'animation
+            >
+              <IonItemSliding>
+                <IonItem button>
+                  {patient.rappel ? (
+                    <IonAvatar slot="start">
+                      <img src={patient.rappel} alt={`${patient.nom} ${patient.prenom}`} />
+                    </IonAvatar>
+                  ) : (
+                    <IonAvatar slot="start" style={{ backgroundColor: '#ccc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <span style={{ color: '#fff', fontSize: '18px', fontWeight: 'bold' }}>{initiales}</span>
+                    </IonAvatar>
+                  )}
+                  <IonLabel onClick={() => navigateToPatientActions(patient)}>
+                    <h2>{`${patient.nom} ${patient.prenom}`}</h2>
+                    <p>{`Tel: ${patient.telephone}`}</p>
+                  </IonLabel>
+                  <IonIcon icon={chevronForwardOutline} slot="end" />
+                </IonItem>
+                <IonItemOptions slot="end">
+                  <IonItemOption color="warning" onClick={() => navigateToEditPatient(patient)}>
+                    <IonIcon slot="icon-only" icon={pencil}></IonIcon>
+                  </IonItemOption>
+                  <IonItemOption color="danger" onClick={() => deletePatient(patient)}>
+                    <IonIcon slot="icon-only" icon={trash}></IonIcon>
+                  </IonItemOption>
+                </IonItemOptions>
+              </IonItemSliding>
+            </motion.div>
+          );
+        })
+      ) : (
+        <p>Pas encore de patientes ajoutées.</p>
+      )}
+    </IonList>
+  
 
-                <IonIcon icon={pencil} slot="end" onClick={() => navigateToEditPatient(patient)} />
-                <IonIcon icon={trash} slot="end" onClick={() => deletePatient(patient)} />
-                
-              </IonItem>
-            ))
-          ) : (
-            <p>No patients added yet.</p>
-            
-          )}
-        </IonList>
+
+</motion.div>
+
         </IonContent>
 
         <div style={{ position: 'fixed', bottom: '70px', left: '50%', transform: 'translateX(-50%)' }}>
@@ -555,12 +566,48 @@ const clearStorage = async () => {
             <IonIcon icon={statsChart} />
             <IonLabel>Statistics</IonLabel>
           </IonTabButton>
-          <IonTabButton tab="advertisements" onClick={navigateToAdvertisements}>
-            <IonIcon icon={megaphone} />
-            <IonLabel>Publicity</IonLabel>
-          </IonTabButton>
+          <IonTabButton tab="Rechercher" onClick={goToSearchPage}>
+          <IonIcon icon={search} />
+          <IonLabel>Rechercher</IonLabel>
+         </IonTabButton>
+          {/* <IonTabButton tab="Rechercher" onClick={toggleSearchModal}>
+          <IonIcon icon={search} />
+          <IonLabel>Rechercher</IonLabel>
+        </IonTabButton> */}
+
+       
         </IonTabBar>
       </IonPage>
+            {/* <IonModal isOpen={isSearchActive} onDidDismiss={toggleSearchModal}>
+        <IonHeader>
+          <IonToolbar>
+            <IonSearchbar
+              value={searchTerm}
+              onIonInput={(e) => setSearchTerm((e.target as unknown as HTMLInputElement).value)}
+              placeholder="Recherchez un patient..."
+            />
+          </IonToolbar>
+        </IonHeader>
+        <IonContent>
+          {filteredPatients.length > 0 ? (
+            <IonList>
+              {filteredPatients.map((patient, index) => (
+                <IonItem key={index}>
+                  <IonLabel>
+                    {patient.nom} {patient.prenom}
+                  </IonLabel>
+                </IonItem>
+              ))}
+            </IonList>
+          ) : (
+            <IonText className="ion-padding">Aucun résultat trouvé.</IonText>
+          )}
+        </IonContent>
+        <IonButton expand="full" onClick={toggleSearchModal}>
+          Fermer
+        </IonButton>
+      </IonModal> */}
+
 
       <IonModal isOpen={showNotifications} onDidDismiss={() => setShowNotifications(false)}>
         <IonHeader>
@@ -579,7 +626,7 @@ const clearStorage = async () => {
               </IonItem>
           ))
         ) : (
-          <p>No notifications.</p>
+          <p>aucun notifications.</p>
         )}
       </IonList>
       

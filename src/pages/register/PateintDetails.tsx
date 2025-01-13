@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonLabel, IonItem, IonButton, IonButtons, IonBackButton, IonGrid, IonRow, IonCol, IonModal, IonCheckbox, IonInput } from '@ionic/react';
+import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonLabel, IonItem, IonButton, IonButtons, IonBackButton, IonGrid, IonRow, IonCol, IonModal, IonCheckbox, IonInput, IonIcon } from '@ionic/react';
 import { useLocation, useHistory } from 'react-router-dom';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { motion } from 'framer-motion';
+import { closeOutline } from 'ionicons/icons';
+import './styleChecks.css';
 
 // Définir l'interface Patient pour garantir que l'objet a la bonne forme
 interface Patient {
@@ -65,6 +68,7 @@ const PatientDetails: React.FC = () => {
   const [patients, setPatients] = useState<any[]>([]);
   const modalPatientDetails = useRef<HTMLIonModalElement>(null);
   const modalAntecedents = useRef<HTMLIonModalElement>(null);
+  
  
   // Fonction pour récupérer la liste des patients depuis AsyncStorage
 const getPatients = async () => {
@@ -160,7 +164,7 @@ const addAntecedent = async () => {
           </IonToolbar>
         </IonHeader>
         <IonContent className="ion-padding">
-          <h2>Aucun patient trouvé!</h2>
+          <h2>Aucun patiente trouvé!</h2>
           <IonButton expand="full" onClick={() => history.goBack()}>Retour</IonButton>
         </IonContent>
       </IonPage>
@@ -174,134 +178,165 @@ const addAntecedent = async () => {
           <IonButtons slot="start">
             <IonBackButton defaultHref="/home" />
           </IonButtons>
-          <IonTitle>Détails du Patient</IonTitle>
+          <IonTitle>Détails du Patiente</IonTitle>
         </IonToolbar>
       </IonHeader>
       <IonContent className="ion-padding">
+      <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
         <IonButton expand="block" onClick={() => modalPatientDetails.current?.present()}>
           Détails de {patient.nom} {patient.prenom}
         </IonButton>
+        </motion.div>
         <IonModal ref={modalPatientDetails}>
           <IonHeader>
             <IonToolbar>
-              <IonTitle>Détails du Patient</IonTitle>
-              <IonButtons slot="end">
-                <IonButton onClick={dismissModalPatientDetails}>Fermer</IonButton>
+              <IonTitle>Détails du Patiente</IonTitle>
+              <IonButtons slot="end" >
+                <IonButton onClick={dismissModalPatientDetails}><IonIcon icon={closeOutline} /></IonButton>
               </IonButtons>
             </IonToolbar>
           </IonHeader>
           <IonContent className="ion-padding">
            <IonItem>
-              <IonLabel>Nom: {patient.nom}</IonLabel>
+         
+           <IonInput label="Nom :" value= {patient.nom} readonly={true}></IonInput>
             </IonItem>
             <IonItem>
-              <IonLabel>Prénom: {patient.prenom}</IonLabel>
+              <IonLabel>Prénom : {patient.prenom} </IonLabel>
             </IonItem>
             <IonItem>
-              <IonLabel>Âge: {patient.age}</IonLabel>
+              <IonLabel>Âge : {patient.age}</IonLabel>
             </IonItem>
             <IonItem>
-              <IonLabel>Marie: {patient.marie}</IonLabel>
+              <IonLabel>Marie : {patient.marie}</IonLabel>
             </IonItem>
             <IonItem>
-              <IonLabel>Région: {patient.region}</IonLabel>
+              <IonLabel>Région : {patient.region}</IonLabel>
             </IonItem>
             <IonItem>
-              <IonLabel>District Sanitaire: {patient.district_sanitaire}</IonLabel>
+              <IonLabel>District Sanitaire : {patient.district_sanitaire}</IonLabel>
             </IonItem>
             <IonItem>
-              <IonLabel>Formation Sanitaire: {patient.formation_sanitaire}</IonLabel>
+              <IonLabel>Formation Sanitaire : {patient.formation_sanitaire}</IonLabel>
             </IonItem>
             <IonItem>
-              <IonLabel>Niveau d'Instruction: {patient.niveau_instruction}</IonLabel>
+              <IonLabel>Niveau d'Instruction : {patient.niveau_instruction}</IonLabel>
             </IonItem>
             <IonItem>
-              <IonLabel>Profession de la Femme: {patient.profession_femme}</IonLabel>
+              <IonLabel>Profession de la Femme : {patient.profession_femme}</IonLabel>
             </IonItem>
             <IonItem>
-              <IonLabel>Profession du Mari: {patient.profession_mari}</IonLabel>
+              <IonLabel>Profession du Mari : {patient.profession_mari}</IonLabel>
             </IonItem>
             <IonItem>
-              <IonLabel>Adresse: {patient.adresse}</IonLabel>
+              <IonLabel>Adresse : {patient.adresse}</IonLabel>
             </IonItem>
             <IonItem>
-              <IonLabel>Commune: {patient.commune}</IonLabel>
+              <IonLabel>Commune : {patient.commune}</IonLabel>
             </IonItem>
             <IonItem>
-              <IonLabel>Date du Dernier Accouchement: {patient.date_dernier_accouchement}</IonLabel>
+              <IonLabel>Date du Dernier Accouchement : {patient.date_dernier_accouchement}</IonLabel>
             </IonItem>
             <IonItem>
-              <IonLabel>Nombre d'Enfants Vivants: {patient.nombre_enfants_vivants}</IonLabel>
+              <IonLabel>Nombre d'Enfants Vivants : {patient.nombre_enfants_vivants}</IonLabel>
             </IonItem>
             <IonItem>
-              <IonLabel>Gestité: {patient.gestite}</IonLabel>
+              <IonLabel>Gestité : {patient.gestite}</IonLabel>
             </IonItem>
             <IonItem>
-              <IonLabel>Parité: {patient.parite}</IonLabel>
+              <IonLabel>Parité : {patient.parite}</IonLabel>
             </IonItem>
             <IonItem>
-              <IonLabel>DDR: {patient.ddr}</IonLabel>
+              <IonLabel>DDR : {patient.ddr}</IonLabel>
             </IonItem>
             <IonItem>
-              <IonLabel>DPA: {patient.dpa}</IonLabel>
+              <IonLabel>DPA : {patient.dpa}</IonLabel>
             </IonItem>
             <IonItem>
-              <IonLabel>CPN1: {patient.cpn1}</IonLabel>
+              <IonLabel>CPN1 : {patient.cpn1}</IonLabel>
             </IonItem>
             </IonContent>
          </IonModal>
-
+         <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+        >
 
          <IonButton expand="block" onClick={() => modalAntecedents.current?.present()}>
   Antécédents de {patient.nom}
 </IonButton>
+</motion.div>
 <IonModal ref={modalAntecedents}>
   <IonHeader>
     <IonToolbar>
       <IonTitle>Antécédents</IonTitle>
       <IonButtons slot="end">
-        <IonButton onClick={dismissModalAntecedents}>Fermer</IonButton>
+        <IonButton onClick={dismissModalAntecedents}><IonIcon icon={closeOutline} /></IonButton>
       </IonButtons>
     </IonToolbar>
   </IonHeader>
   <IonContent className="ion-padding">
-    <IonGrid>
-    {[{ label: 'Age inférieur à 18 ans', field: 'ageInferieur18Ans' },
-            { label: 'Age supérieur à 38 ans', field: 'ageSuperieur38Ans' },
-            { label: 'Primipare âgée de plus de 35 ans', field: 'primipareAgeePlus35Ans' },
-            { label: 'Parité supérieure à 5', field: 'pariteSuperieure5' },
-            { label: 'Dernier accouchement il y a moins de 2 ans', field: 'dernierAccouchementMoins2Ans' },
-            { label: 'Bassin rétréci asymétrique', field: 'bassinRetreciAsymetrique' },
-            { label: 'TA supérieure à 14/8', field: 'taSup148' },
-            { label: 'Diabète', field: 'diabete' },
-            { label: 'Dyspnée', field: 'dyspnee' },
-            { label: 'Intervention chirurgicale', field: 'intervention' },
-            { label: 'Grossesse gemellaire', field: 'grossesseGemellaire' },
-            { label: 'Antécédents médicaux', field: 'antecedent' },
-            { label: 'Mort-né', field: 'mortNe' },
-            { label: 'Fausses couches', field: 'faussesCouches' },
-            { label: 'Habitude', field: 'habitude' }].map(({ label, field }) => (
-            <IonRow key={field}>
-              <IonCol size="6">
-                <IonLabel>{label}</IonLabel>
-              </IonCol>
-              <IonCol size="3">
-                <IonCheckbox
-                  checked={answers[field]}
-                  onIonChange={() => handleCheckboxChange(field, true)}
-                />
-                <IonLabel>Oui</IonLabel>
-              </IonCol>
-              <IonCol size="3">
-                <IonCheckbox
-                  checked={!answers[field]}
-                  onIonChange={() => handleCheckboxChange(field, false)}
-                />
-                <IonLabel>Non</IonLabel>
-              </IonCol>
-            </IonRow>
-          ))}
+  <IonGrid>
+  {[
+    { label: 'Age inférieur à 18 ans', field: 'ageInferieur18Ans' },
+    { label: 'Age supérieur à 38 ans', field: 'ageSuperieur38Ans' },
+    { label: 'Primipare âgée de plus de 35 ans', field: 'primipareAgeePlus35Ans' },
+    { label: 'Parité supérieure à 5', field: 'pariteSuperieure5' },
+    { label: 'Dernier accouchement il y a moins de 2 ans', field: 'dernierAccouchementMoins2Ans' },
+    { label: 'Bassin rétréci asymétrique', field: 'bassinRetreciAsymetrique' },
+    { label: 'TA supérieure à 14/8', field: 'taSup148' },
+    { label: 'Diabète', field: 'diabete' },
+    { label: 'Dyspnée', field: 'dyspnee' },
+    { label: 'Intervention chirurgicale', field: 'intervention' },
+    { label: 'Grossesse gemellaire', field: 'grossesseGemellaire' },
+    { label: 'Antécédents médicaux', field: 'antecedent' },
+    { label: 'Mort-né', field: 'mortNe' },
+    { label: 'Fausses couches', field: 'faussesCouches' },
+    { label: 'Habitude', field: 'habitude' }
+      ].map(({ label, field }, index) => (
+        <div key={field}>
+           <motion.div 
+    key={field} 
+    initial={{ opacity: 0 }} 
+    animate={{ opacity: 1 }} 
+    transition={{ duration: 0.5 }}
+  >
+          <IonRow>
+            <IonCol size="6">
+              <IonLabel>{label}</IonLabel>
+            </IonCol>
+            <IonCol size="3">
+              <IonCheckbox
+                checked={answers[field]}
+                
+                onIonChange={() => handleCheckboxChange(field, true)}
+              />
+              <IonLabel> Oui</IonLabel>
+            </IonCol>
+            <IonCol size="3">
+              <IonCheckbox
+                checked={!answers[field]}
+            
+                onIonChange={() => handleCheckboxChange(field, false)}
+              />
+              <IonLabel> Non</IonLabel>
+            </IonCol>
+          </IonRow>
+          
+
+          {/* Ligne horizontale après chaque entrée sauf la dernière */}
+          {index < 15 && <hr style={{ border: '1px solid #ccc', margin: '10px 0' }} />}
+          </motion.div>
+        </div>
+        
+      ))}
     </IonGrid>
+
     <IonButton expand="full" onClick={handleSubmit}>
       {isAntecedentAdded ? 'Mettre à jour les antécédents' : 'Ajouter Antécédent'}
     </IonButton>
@@ -312,5 +347,7 @@ const addAntecedent = async () => {
     </IonPage>
   );
 };
+
+
 
 export default PatientDetails;
