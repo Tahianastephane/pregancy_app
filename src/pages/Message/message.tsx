@@ -3,6 +3,7 @@ import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonList, IonItem,
 import { useHistory } from 'react-router-dom';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { chatbox } from 'ionicons/icons';
+import { motion } from 'framer-motion';
 
 const MessagePage: React.FC = () => {
   const history = useHistory();
@@ -37,6 +38,28 @@ const MessagePage: React.FC = () => {
     <IonPage>
       <IonHeader>
         <IonToolbar>
+          
+<motion.div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: -1, // Placer l'arrière-plan en dessous du contenu
+                background: 'linear-gradient(50deg, #79a7d3, #79a7d3)', // Dégradé linéaire avec la couleur #79a7d3
+              }}
+              animate={{
+                backgroundPosition: ['0% 0%', '100% 100%'], // Animation du dégradé
+              }}
+              transition={{
+                duration: 10,
+                repeat: Infinity,
+                repeatType: 'loop', // Répétition infinie de l'animation
+                ease: 'linear',
+              }}
+            ></motion.div>
+
           <IonButtons slot="start">
             <IonBackButton defaultHref="/home" />
           </IonButtons>
@@ -44,7 +67,39 @@ const MessagePage: React.FC = () => {
         </IonToolbar>
       </IonHeader>
       <IonContent className="ion-padding">
+        
+<motion.div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: -1, // Placer l'arrière-plan en dessous du contenu
+                background: 'linear-gradient(45deg, #ff6f61, #6a5acd)', // Exemple de fond dégradé
+                boxShadow: 'none'
+              
+         
+              }}
+            ></motion.div>
+
       <IonList>
+        
+<motion.div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: -1, // Placer l'arrière-plan en dessous du contenu
+                background: 'linear-gradient(45deg, #ff6f61, #6a5acd)', // Exemple de fond dégradé
+                boxShadow: 'none'
+              
+         
+              }}
+            ></motion.div>
+
   {patients.map((patient, index) => {
     // Générer les initiales à partir du nom et prénom
     const initiales = `${patient.nom?.charAt(0) || ''}${patient.prenom?.charAt(0) || ''}`.toUpperCase();

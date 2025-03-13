@@ -1,5 +1,5 @@
 body {
-    background-color: #ffffff !important; /* Force le fond blanc */
+    background-color: red !important; /* Force le fond blanc */
     color: #000000 !important; /* Force le texte noir */
   }
   
@@ -7,7 +7,7 @@ body {
   
   
   ion-item {
-    --background: #transparet !important; 
+    --background: red !important; 
     --color: #020202 !important; /* Texte noir */
     border: none !important; /* Supprime toute bordure potentielle */
     box-shadow: green !important; /* Supprime toute ombre éventuelle */

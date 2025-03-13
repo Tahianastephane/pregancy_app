@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { IonPage, IonContent, IonList, IonItem, IonLabel, IonCheckbox, IonTextarea, IonButton } from '@ionic/react';
 import { useParams, useHistory } from 'react-router-dom';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { motion } from 'framer-motion';
 
 interface RendezVous {
   id: string;
@@ -86,13 +87,45 @@ const RendezVousPage: React.FC = () => {
   return (
     <IonPage>
       <IonContent>
+      <motion.div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: -1, // Placer l'arrière-plan en dessous du contenu
+                background: 'linear-gradient(45deg, #ff6f61, #6a5acd)', // Exemple de fond dégradé
+                boxShadow: 'none'
+              
+         
+              }}
+            ></motion.div>
+
         {rendezVousList.length === 0 ? (
           <IonLabel>Aucun rendez-vous trouvé pour ce patient avec le numéro de téléphone : {telephone}.</IonLabel>
         ) : (
           <IonList>
+            <motion.div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: -1, // Placer l'arrière-plan en dessous du contenu
+                background: 'linear-gradient(45deg, #ff6f61, #6a5acd)', // Exemple de fond dégradé
+                boxShadow: 'none'
+              
+         
+              }}
+            ></motion.div>
+
             {rendezVousList.map((rendezVous, index) => (
               <IonItem key={rendezVous.id}>
+                
                 <IonLabel>
+                  
                   <h2>{new Date(rendezVous.date).toLocaleString()}</h2>
                   <IonItem lines="none">
                     <IonLabel position="stacked">Rendez-vous effectué</IonLabel>

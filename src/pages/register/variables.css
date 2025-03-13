@@ -1,23 +1,27 @@
-body {
-    background-color: #ffffff !important; /* Force le fond blanc */
+ #root {
+    background: #ffffff !important; /* Force le fond blanc */
     color: #000000 !important; /* Force le texte noir */
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
   }
   
- 
+  
   
   
   ion-item {
-    --background: #transparet !important; 
+    --background: transparent !important; 
+    --color: #020202 !important; /* Texte noir */
+    border: transparent !important; /* Supprime toute bordure potentielle */
+    box-shadow: none !important; /* Supprime toute ombre éventuelle */
+  }
+  ion-page {
+    --background: !important; 
     --color: #020202 !important; /* Texte noir */
     border: none !important; /* Supprime toute bordure potentielle */
     box-shadow: green !important; /* Supprime toute ombre éventuelle */
   }
-  ion-item {
-    --background: transparent !important; /* Fond transparent */
-    --color: #020202 !important; /* Texte noir */
-    border: none !important; /* Supprime toute bordure potentielle */
-    box-shadow: none !important; /* Supprime toute ombre éventuelle */
-}
 
 ion-item p {
     color: #000000 !important; /* Texte des paragraphes en bleu ciel */

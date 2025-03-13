@@ -48,58 +48,52 @@ interface Patient {
   prenom: string;
   age: number;
   marie: 'oui' | 'non';
-  region: 
-    | 'Antananarivo'
-    | 'Antsiranana'
-    | 'Fianarantsoa'
-    | 'Mahajanga'
-    | 'Toamasina'
-    | 'Toliara'
-    | 'Vakinankaratra'
-    | 'Amoron\'i Mania'
-    | 'Analamanga'
-    | 'Atsinanana'
-    | 'Haute Matsiatra'
-    | 'Ihorombe'
-    | 'Itasy'
-    | 'Melaky'
-    | 'Sava'
-    | 'Sofia'
-    | 'Atsimo-Andrefana'
-    | 'Androy'
-    | 'Anosy'
-    | 'Bongolava'
-    | 'Boeny'
-    | 'Menabe'
-    | 'Analanjirofo'; // champ region
-  district_sanitaire: string;
-  formation_sanitaire: string;
-  niveau_instruction: string;
-  profession_femme: string;
-  profession_mari: string;
+  profession :string,
   adresse: string;
   commune: string;
   date_dernier_accouchement: string;
   nombre_enfants_vivants: string;
-  gestite: number;
-  parite: number;
   ddr: string;
   dpa: string;
-  cpn1: number;
+  cin: string;
+  prestataire : string,
+  csb : string,
+  Nbcpn : number,
+  cpn : string,
   rappel: string;
 }
 
+
+
 // **Fonctions spécifiques pour la table patients**
 export const savePatient = async (patient: Patient): Promise<void> => {
-  const patients = await getData('patients');
-  const updatedPatients = patients ? { ...patients, [patient.telephone]: patient } : { [patient.telephone]: patient };
+  const patients = await getData('patients'); // Récupération des patients existants
+
+  let updatedPatients: Patient[];
+
+  if (patients) {
+    const patientIndex = patients.findIndex((existingPatient: Patient) => existingPatient.telephone === patient.telephone);
+    
+    if (patientIndex !== -1) {
+      // Le patient existe déjà, donc on le met à jour
+      updatedPatients = [...patients];
+      updatedPatients[patientIndex] = patient;
+    } else {
+      // Le patient n'existe pas, donc on l'ajoute
+      updatedPatients = [...patients, patient];
+    }
+  } else {
+    // Aucun patient dans le stockage, on crée un tableau avec ce patient
+    updatedPatients = [patient];
+  }
+
+  // Sauvegarde la liste mise à jour dans AsyncStorage
   await storeData('patients', updatedPatients);
 };
 
+
 // Récupérer tous les patients
-export const getPatients = async (): Promise<any> => {
-  return await getData('patients');
-};
+
 
 // **Fonctions spécifiques pour la table antecedents**
 export const saveAntecedent = async (antecedent: {
@@ -194,7 +188,150 @@ export const savePatientWithRendezVous = async (patient: any, rendezVous: Rendez
   await storeData('patients', updatedPatients); // Sauvegarder le patient avec ses rendez-vous
 };
 
+// **Modèle pour les Soignants**
+export interface Soignant {
+  nom : string,
+  prenom : string,
+  contact : string,
+  matricule: string; // Matricule unique
+  cin: string;
+  region: 
+  | 'Alaotra Mangory'
+  | 'Analamanga'
+  | 'Androy'
+  | 'Anosy'
+  | 'Atsimo Andrefana'
+  | 'Atsimo antsinana'
+  | 'Atsinana'
+  | 'Bestiboka'
+  | 'boeny'
+  | 'Bongolava'
+  | 'Diana'
+  | 'Fitovinany'
+  | 'haute Matsiatra'
+  | 'Ihorombe'
+  | 'Itasy'
+  | 'Melaky'
+  | 'Menabe'
+  | 'Sava'
+  | 'Sofia'
+  | 'Vakinankaratra'
+  | 'Vatovavy',
+ district: string;
+  commune: string;
+  lastConnection?: {
+    connected: boolean; // True si connecté, false sinon
+    connectionTime?: string; // Heure de la dernière connexion
+    disconnectionTime?: string; // Heure de la déconnexion
+  };
+}
 
 
-// Initialiser l'administrateur par défaut
+// **Fonctions spécifiques pour la table Soignants**
+// Sauvegarder un soignant
+export const saveSoignant = async (soignant: Soignant): Promise<void> => {
+  const soignants = await getData('soignants');
+  const updatedSoignants = soignants ? { ...soignants, [soignant.matricule]: soignant } : { [soignant.matricule]: soignant };
+  await storeData('soignants', updatedSoignants);
+};
+
+
+// Récupérer un soignant par matricule
+export const getSoignantByMatricule = async (matricule: string): Promise<Soignant | null> => {
+  const soignants = await getData('soignants');
+
+  return soignants ? soignants[matricule] || null : null;
+};
+
+// Récupérer tous les soignants
+export const getAllSoignants = async (): Promise<Soignant[]> => {
+  const soignants = await getData('soignants');
+  return soignants ? Object.values(soignants) : [];
+};
+
+// Supprimer un soignant par matricule
+export const deleteSoignant = async (matricule: string): Promise<void> => {
+  const soignants = await getData('soignants');
+  if (soignants && soignants[matricule]) {
+    delete soignants[matricule];
+    await storeData('soignants', soignants);
+  }
+};
+// Ajouter une fonction pour l'historique des patients annulés
+interface HistoriqueAnnulation {
+  id_patient: string; // L'ID du patient
+  nom: string; // Le nom du patient
+  prenom: string; // Le prénom du patient
+  date_annulation: string; // La date de l'annulation
+}
+
+export const saveAnnulationToHistorique = async (patient: Patient): Promise<void> => {
+  const historique = await getData('historique_annulations');
+  const annulation: HistoriqueAnnulation = {
+    id_patient: patient.telephone,
+    nom: patient.nom,
+    prenom: patient.prenom,
+    date_annulation: new Date().toISOString(), // La date actuelle de l'annulation
+  };
+  const updatedHistorique = historique ? [...historique, annulation] : [annulation];
+  await storeData('historique_annulations', updatedHistorique);
+};
+
+// Fonction pour annuler un patient et enregistrer l'annulation dans l'historique
+// Définir le type d'objet patients
+interface Patients {
+  [key: string]: Patient; // Les clés sont de type string (téléphone) et les valeurs sont de type Patient
+}
+
+export const cancelPatient = async (patient: Patient): Promise<void> => {
+  const patients: Patients = await getData('patients'); // Déclarer le type explicitement
+
+  if (!patients || !patients[patient.telephone]) return;
+
+  // Sauvegarder l'annulation dans l'historique
+  await saveAnnulationToHistorique(patient);
+
+  // Supprimer le patient de la liste des patients
+  const updatedPatients = Object.keys(patients)
+    .filter(key => key !== patient.telephone) // Exclure le patient annulé
+    .reduce((acc: Patients, key) => {
+      acc[key] = patients[key];
+      return acc;
+    }, {} as Patients); // Cast explicite à 'Patients'
+
+  await storeData('patients', updatedPatients); // Sauvegarder les patients après suppression
+};
+
+
+// Récupérer l'historique des annulations
+export const getHistoriqueAnnulations = async (): Promise<HistoriqueAnnulation[]> => {
+  return await getData('historique_annulations') || [];
+};
+
+// Exemple d'utilisation : Suppression d'un patient
+const deletePatientAndLogHistory = async (patient: Patient) => {
+  await cancelPatient(patient);
+  console.log(`Patient ${patient.nom} ${patient.prenom} annulé et ajouté à l'historique`);
+};
+
+// Récupérer tous les patients
+export const getPatients = async (): Promise<Patient[]> => {
+  const patients = await getData('patients');
+  return patients ? Object.values(patients) : [];
+};
+
+export const saveNotificationsToStorage = (notifications: any[]) => {
+  localStorage.setItem('notifications', JSON.stringify(notifications));
+};
+
+export const getNotificationsFromStorage = (): any[] => {
+  const storedNotifications = localStorage.getItem('notifications');
+  return storedNotifications ? JSON.parse(storedNotifications) : [];
+};
+
+
+
+
+
+// Initialiser l'a.dministrateur par défaut
 initializeAdmin();

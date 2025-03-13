@@ -15,6 +15,7 @@ import { IonReactRouter } from '@ionic/react-router';
 import { ellipse, square, triangle } from 'ionicons/icons';
 import login from './pages/login/login';
 
+
 import PatientDetails from './pages/register/PateintDetails';
 
 /* Core CSS required for Ionic components to work properly */
@@ -45,7 +46,7 @@ import '@ionic/react/css/display.css';
 import '@ionic/react/css/palettes/dark.system.css';
 
 /* Theme variables */
-// import './theme/variables.css';
+// import './pages/theme/variables.css';
 import PatientAntes from './pages/register/PatientAntes';
 import VoirAntecedent from './pages/register/PatientAntesVoir';
 import MessagePage from './pages/Message/message';
@@ -57,6 +58,8 @@ import splash from './pages/images/splash.png';
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import SearchPage from './pages/SearchPage/SearchPage';
+import SoignantInfo from './pages/Soignanteinfo/SoignantInfo';
+import Soignantdetails from './pages/Soignanteinfo/soignantedetails';
 
 
 setupIonicReact();
@@ -92,6 +95,10 @@ const SplashScreen: React.FC = () => {
 const App: React.FC = () => {
   const [isSplashVisible, setIsSplashVisible] = useState(true);
 
+ 
+  
+
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsSplashVisible(false);
@@ -122,6 +129,8 @@ const App: React.FC = () => {
         <Route exact path="/Consultations" component={ Consultations} />
         <Route exact path="/recherche" component={ SearchPage} />
         <Route exact path="/RendezVousPage" component={ RendezVousPage} />
+        <Route exact path="/soignant-info" component={ SoignantInfo} />
+        <Route exact path="/soignant" component={ Soignantdetails} />
         <Route path="/RendezVousPage/:patientId" component={RendezVousPage} />
 
         <Route exact path="/" render={() => <Redirect to="/login" />} />

@@ -1,0 +1,52 @@
+/* form-styles.css */
+
+/* Fond personnalisé pour le formulaire */
+.form-container {
+    background-color: #f2f2f2;  /* Couleur de fond claire */
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Style pour l'élément Avatar et le bouton photo */
+  .form-avatar {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  
+  .form-avatar h3 {
+    margin-left: 15px;
+    font-size: 18px;
+    font-weight: 600;
+  }
+  
+  .form-avatar p {
+    font-size: 14px;
+    color: gray;
+  }
+  
+  .form-upload-button {
+    margin-top: 10px;
+  }
+  
+  /* Style du bouton télécharger image */
+  #file-upload {
+    display: none;
+  }
+  
+  .label-upload {
+    display: block;
+    margin-top: 10px;
+    cursor: pointer;
+    color: #3880ff;
+  }
+  
+  .ion-content {
+    background-color: #f7f7f7; /* Fond général de la page */
+  }
+  
+  .ion-card {
+    margin-bottom: 20px;
+  }
+  

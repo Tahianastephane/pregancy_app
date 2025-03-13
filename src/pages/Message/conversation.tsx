@@ -3,6 +3,8 @@ import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonText, IonList,
 import { useLocation } from 'react-router-dom';
 import { SMS } from '@ionic-native/sms';
 import { send } from 'ionicons/icons'; // Assurez-vous d'importer l'icône de l'envoi
+import { getMessages, saveMessage } from '../database/database';
+import { motion } from 'framer-motion';
 
 interface LocationState {
   patient: {
@@ -42,8 +44,17 @@ const ConversationPage: React.FC = () => {
   // Fonction pour envoyer un message via SMS
   const handleSendMessage = async () => {
     if (message.trim()) {
+      const newMessage = {
+        id_patient: patient.telephone,
+        envoyer: 'true',
+        message: message,
+        date_envoie: new Date().toISOString(), // Date actuelle
+      };
+  
+      // Sauvegarder le message dans la base de données
+      await saveMessage(newMessage);
       // Ajouter le message localement
-      setMessages((prevMessages) => [...prevMessages, `Me: ${message}`]);
+      setMessages((prevMessages) => [...prevMessages, ` ${message}`]);
       setMessage('');
   
       // Construire le message de bienvenue personnalisé avec le nom du patient
@@ -64,24 +75,59 @@ const ConversationPage: React.FC = () => {
           },
         });
         console.log("Message envoyé avec succès!");
-        setMessages((prevMessages) => [...prevMessages, `Vous: ${welcomeMessage}`]); // Ajouter le message dans l'interface
+        setMessages((prevMessages) => [...prevMessages, ` ${welcomeMessage}`]); // Ajouter le message dans l'interface
       } catch (error) {
         console.error("Erreur lors de l'envoi du message: ", error);
       }
     }
   };
+
+  React.useEffect(() => {
+    const loadMessages = async () => {
+      const allMessages = await getMessages();
+      const patientMessages = allMessages.filter((msg: any) => msg.id_patient === patient.telephone);
+      const formattedMessages = patientMessages.map((msg: any) =>
+        msg.envoyer === 'true' ? ` ${msg.message}` : `Patient: ${msg.message}`
+      );
+      setMessages(formattedMessages);
+    };
+  
+    loadMessages();
+  }, [patient.telephone]);
+  
   
 
   return (
     <IonPage>
       <IonHeader>
         <IonToolbar>
+        <motion.div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: -1, // Placer l'arrière-plan en dessous du contenu
+                background: 'linear-gradient(50deg, #79a7d3, #79a7d3)', // Dégradé linéaire avec la couleur #79a7d3
+              }}
+              animate={{
+                backgroundPosition: ['0% 0%', '100% 100%'], // Animation du dégradé
+              }}
+              transition={{
+                duration: 10,
+                repeat: Infinity,
+                repeatType: 'loop', // Répétition infinie de l'animation
+                ease: 'linear',
+              }}
+            ></motion.div>
+
           <IonButtons slot="start">
             <IonBackButton defaultHref="/home" />
           </IonButtons>
           <IonTitle>
             {`${patient.nom} ${patient.prenom}`}
-            <IonText color="medium" style={{ display: 'block', fontSize: '14px', marginTop: '4px' }}>
+            <IonText color="white" style={{ display: 'block', fontSize: '14px', marginTop: '4px' }}>
               {`Numéro: ${patient.telephone}`}
             </IonText>
           </IonTitle>
@@ -89,38 +135,65 @@ const ConversationPage: React.FC = () => {
       </IonHeader>
 
       <IonContent>
-        <IonList style={{ paddingBottom: '80px' }}>
-          {messages.map((msg, index) => (
-            <IonItem
-              key={index}
-              lines="none"
+        
+<motion.div
               style={{
-                display: 'flex',
-                justifyContent: msg.startsWith('Me:') ? 'flex-end' : 'flex-start',
-                marginBottom: '10px',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: -1, // Placer l'arrière-plan en dessous du contenu
+                background: 'linear-gradient(45deg, #ff6f61, #6a5acd)', // Exemple de fond dégradé
+                boxShadow: 'none'
+              
+         
               }}
-            >
-              {/* Avatar du patient */}
-              {!msg.startsWith('Me:') && (
-                <IonAvatar style={{ marginRight: '10px' }}>
-                  <img src="" alt="avatar" />
-                </IonAvatar>
-              )}
+            ></motion.div>
 
-              {/* Message */}
-              <IonLabel color={msg.startsWith('Me:') ? 'primary' : 'medium'}>
-                <p>{msg}</p>
-              </IonLabel>
+      <IonList style={{ paddingBottom: '80px' }}>
+        
+<motion.div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: -1, // Placer l'arrière-plan en dessous du contenu
+                background: 'linear-gradient(45deg, #ff6f61, #6a5acd)', // Exemple de fond dégradé
+                boxShadow: 'none'
+              
+         
+              }}
+            ></motion.div>
 
-              {/* Avatar de l'utilisateur */}
-              {msg.startsWith('Me:') && (
-                <IonAvatar style={{ marginLeft: '10px' }}>
-                  <img src="src/pages/images/doc.jpg" alt="avatar" />
-                </IonAvatar>
-              )}
-            </IonItem>
-          ))}
-        </IonList>
+        {messages.map((msg, index) => (
+          <IonItem
+            key={index}
+            lines="none"
+            style={{
+              display: 'flex',
+              justifyContent: msg.startsWith('') ? 'flex-end' : 'flex-start',
+              marginBottom: '10px',
+            }}
+          >
+            {!msg.startsWith('') && (
+              <IonAvatar style={{ marginRight: '10px' }}>
+                <img src="" alt="avatar" />
+              </IonAvatar>
+            )}
+            <IonLabel color={msg.startsWith('') ? 'primary' : 'medium'}>
+              <p>{msg}</p>
+            </IonLabel>
+            {msg.startsWith('') && (
+              <IonAvatar style={{ marginLeft: '10px' }}>
+                <img src="src/pages/images/soignante.jpeg" alt="avatar" />
+              </IonAvatar>
+            )}
+          </IonItem>
+        ))}
+      </IonList>
 
         {/* Champ de message et bouton d'envoi */}
         <IonItem style={{ position: 'fixed', bottom: '0', width: '100%', padding: '10px' }}>

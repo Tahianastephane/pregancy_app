@@ -1,0 +1,28 @@
+/* Modifier la couleur et le style des IonItems */
+.custom-ion-item {
+    background-color: #007bff; /* Couleur de fond bleu */
+    border-radius: 8px; /* Coins arrondis */
+    margin-bottom: 2px; /* Espacement entre les items */
+    overflow: hidden; /* Pour que les animations ne débordent pas */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Ombre douce */
+    color: '#ffcce7',
+  }
+  
+  /* Couleur et style du label */
+  .custom-label {
+    color: white; /* Texte blanc */
+    font-weight: bold; /* Texte en gras */
+  }
+  
+  /* Couleur et style de l'input */
+  .custom-input {
+    color: white; /* Texte blanc */
+    font-size: 16px; /* Taille du texte */
+  }
+  
+  /* Ajouter un effet d'animation au survol */
+  .custom-ion-item:hover {
+    transform: translateY(-3px); /* Légère élévation */
+    transition: all 0.3s ease; /* Animation fluide */
+  }
+  

@@ -200,6 +200,27 @@ const saveRendezVous = async (patient: Patient) => {
     <IonPage>
       <IonHeader>
         <IonToolbar>
+        <motion.div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: -1, // Placer l'arrière-plan en dessous du contenu
+                background: 'linear-gradient(50deg, #79a7d3, #79a7d3)', // Dégradé linéaire avec la couleur #79a7d3
+              }}
+              animate={{
+                backgroundPosition: ['0% 0%', '100% 100%'], // Animation du dégradé
+              }}
+              transition={{
+                duration: 10,
+                repeat: Infinity,
+                repeatType: 'loop', // Répétition infinie de l'animation
+                ease: 'linear',
+              }}
+            ></motion.div>
+
           <IonButtons slot="start">
             <IonBackButton defaultHref="/home" />
           </IonButtons>
@@ -207,7 +228,37 @@ const saveRendezVous = async (patient: Patient) => {
         </IonToolbar>
       </IonHeader>
       <IonContent>
+      <motion.div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: -1, // Placer l'arrière-plan en dessous du contenu
+                background: 'linear-gradient(45deg, #ff6f61, #6a5acd)', // Exemple de fond dégradé
+                boxShadow: 'none'
+              
+         
+              }}
+            ></motion.div>
+
       <IonList>
+      <motion.div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: -1, // Placer l'arrière-plan en dessous du contenu
+                background: 'linear-gradient(45deg, #ff6f61, #6a5acd)', // Exemple de fond dégradé
+                boxShadow: 'none'
+              
+         
+              }}
+            ></motion.div>
+
   {patients.map((patient) => {
     // Générer les initiales à partir du nom et prénom
     const initiales = `${patient.nom?.charAt(0) || ''}${patient.prenom?.charAt(0) || ''}`.toUpperCase();
@@ -251,6 +302,31 @@ const saveRendezVous = async (patient: Patient) => {
       <IonModal isOpen={showModal} onDidDismiss={closeModal}>
         <IonHeader>
           <IonToolbar>
+          <motion.div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: -1, // Placer l'arrière-plan en dessous du contenu
+                background: 'linear-gradient(50deg, #79a7d3, #79a7d3)', // Dégradé linéaire avec la couleur #79a7d3
+              }}
+              animate={{
+                backgroundPosition: ['0% 0%', '100% 100%'], // Animation du dégradé
+              }}
+              transition={{
+                duration: 10,
+                repeat: Infinity,
+                repeatType: 'loop', // Répétition infinie de l'animation
+                ease: 'linear',
+              }}
+            ></motion.div>
+
+
+
+
+
             <IonTitle>Rendez-vous pour {selectedPatient.nom} {selectedPatient.prenom}</IonTitle>
             <IonButtons slot="end">
               <IonButton onClick={closeModal}>Fermer</IonButton>
@@ -258,6 +334,22 @@ const saveRendezVous = async (patient: Patient) => {
           </IonToolbar>
         </IonHeader>
         <IonContent>
+        <motion.div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: -1, // Placer l'arrière-plan en dessous du contenu
+                background: 'linear-gradient(45deg, #ff6f61, #6a5acd)', // Exemple de fond dégradé
+                boxShadow: 'none',
+                
+              
+         
+              }}
+            ></motion.div>
+
           {selectedPatient.appointments && Array.isArray(selectedPatient.appointments) && selectedPatient.appointments.length > 0 ? (
             selectedPatient.appointments
               .filter((rendezVous) => isSameMonth(new Date(rendezVous.date), new Date())) // Rendez-vous du mois en cours
@@ -307,6 +399,22 @@ const saveRendezVous = async (patient: Patient) => {
 
           {showAllAppointments && selectedPatient.appointments.map((rendezVous: Appointment, index) => (
             <div key={index}>
+              <motion.div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: -1, // Placer l'arrière-plan en dessous du contenu
+                background: 'linear-gradient(45deg, #ff6f61, #6a5acd)', // Exemple de fond dégradé
+                boxShadow: 'none',
+                height:'350vh'
+              
+         
+              }}
+            ></motion.div>
+
               {!isSameMonth(new Date(rendezVous.date), new Date()) && (
                 <>
                   <IonItem>

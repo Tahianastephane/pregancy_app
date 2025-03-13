@@ -1,37 +1,53 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonLabel, IonItem, IonButton, IonButtons, IonBackButton, IonGrid, IonRow, IonCol, IonModal, IonCheckbox, IonInput, IonIcon } from '@ionic/react';
+import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonLabel, IonItem, IonButton, IonButtons, IonBackButton, IonGrid, IonRow, IonCol, IonModal, IonCheckbox, IonInput, IonIcon, IonCard, IonCardContent, IonCardHeader, IonCardTitle, IonProgressBar } from '@ionic/react';
 import { useLocation, useHistory } from 'react-router-dom';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { motion } from 'framer-motion';
 import { closeOutline } from 'ionicons/icons';
 import './styleChecks.css';
 
+interface Rendezvous {
+  date: string;
+  statut: boolean; // `true` pour effectué, `false` pour non effectué
+}
+
 // Définir l'interface Patient pour garantir que l'objet a la bonne forme
 interface Patient {
+  nextAppointment: string | number | null | undefined;
   telephone: any;
   nom: string;
   prenom: string;
   age: number;
   marie: string;
   region: string;
-  district_sanitaire: string;
-  formation_sanitaire: string;
-  niveau_instruction: string;
-  profession_femme: string;
-  profession_mari: string;
   adresse: string;
-  commune: string;
+  cin: string;
+  profession: string,
+  nbcpn: number,
+  csb:string,
+  prestataire: string,
   date_dernier_accouchement: string;
   nombre_enfants_vivants: number;
-  gestite: number;
-  parite: number;
   ddr: string;
   dpa: string;
-  cpn1: number;
+  cpn: number;
   rappel: string;
-  antecedent?: any; // Ajout de la propriété 'antecedent' de type any
+  antecedent?: any;
+  rendezvous: Rendezvous[]; // Ajout de la propriété 'antecedent' de type any
+}
+interface Rendezvous {
+  date: string;
+  statut: boolean; // `true` pour effectué, `false` pour non effectué
+  note: string; // Note ajoutée au rendez-vous
 }
 
+
+
+
+const calculateWeeksBetween = (start: Date, end: Date) => {
+  const millisecondsPerWeek = 1000 * 60 * 60 * 24 * 7;
+  return Math.floor((end.getTime() - start.getTime()) / millisecondsPerWeek);
+};
 // Définir un type pour le state de useLocation avec la structure spécifique attendue
 interface LocationState {
   patient: Patient;
@@ -40,9 +56,10 @@ interface LocationState {
 const PatientDetails: React.FC = () => {
   const location = useLocation<LocationState>(); // Utiliser le type LocationState pour `useLocation`
   const history = useHistory();
+ 
 
   // Vérifier si patient est disponible dans le state
-  const patient: Patient | undefined = location.state?.patient;
+  
 
   // Initialisation de l'état answers avec toutes les cases à cocher décochées par défaut
   const [answers, setAnswers] = useState<any>({
@@ -68,6 +85,10 @@ const PatientDetails: React.FC = () => {
   const [patients, setPatients] = useState<any[]>([]);
   const modalPatientDetails = useRef<HTMLIonModalElement>(null);
   const modalAntecedents = useRef<HTMLIonModalElement>(null);
+  const [patient, setPatient] = useState<Patient | undefined>(location.state?.patient || { ddr: '', dpa: '' });
+  const [notes, setNotes] = useState<string>('');
+  
+
   
  
   // Fonction pour récupérer la liste des patients depuis AsyncStorage
@@ -80,6 +101,39 @@ const getPatients = async () => {
       console.error('Erreur lors de la récupération des patients', error);
     }
   };
+
+  
+  const calculateWeeksBetween = (start: Date, end: Date) => {
+    const millisecondsPerWeek = 1000 * 60 * 60 * 24 * 7;
+    return Math.floor((end.getTime() - start.getTime()) / millisecondsPerWeek);
+  };
+
+  // Récupérer les dates DDR et DPA
+  const ddrDate = new Date(patient.ddr);
+  const dpaDate = new Date(patient.dpa);
+  const today = new Date();
+
+  useEffect(() => {
+    if (patient?.ddr) { // Vérifie que patient n'est pas undefined avant d'accéder à ddr
+      const ddrDate = new Date(patient.ddr);
+      const dpaDate = new Date(ddrDate);
+      dpaDate.setDate(ddrDate.getDate() + 280); // Calcul du DPA
+  
+      setPatient(prevPatient => ({
+        ...prevPatient!,
+        dpa: dpaDate.toISOString().split('T')[0], // Mise à jour du DPA
+      }));
+    }
+  }, [patient?.ddr]); // Utilisation de patient?.ddr ici pour éviter l'accès à undefined
+   // Surveiller patient au lieu de patient?.ddr pour toute mise à jour
+  
+  // Calculer les semaines de grossesse et le progrès
+  const totalWeeks = calculateWeeksBetween(ddrDate, dpaDate); // 40 semaines
+  const weeksPassed = calculateWeeksBetween(ddrDate, today); // Semaines écoulées
+  const monthsPassed = Math.floor(weeksPassed / 4); // Mois de grossesse
+
+  // Limiter le progrès à 100% pour éviter de dépasser
+  const progress = Math.min(weeksPassed / totalWeeks, 1);
 
   const dismissModalPatientDetails = () => modalPatientDetails.current?.dismiss();
   const dismissModalAntecedents = () => modalAntecedents.current?.dismiss();
@@ -156,7 +210,22 @@ const addAntecedent = async () => {
     return (
       <IonPage>
         <IonHeader>
+        <motion.div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: -1, // Placer l'arrière-plan en dessous du contenu
+                background: 'linear-gradient(45deg, #ff6f61, #6a5acd)',
+                 // Exemple de fond dégradé
+              }}
+            ></motion.div>
           <IonToolbar>
+       
+         
+        
             <IonButtons slot="start">
               <IonBackButton defaultHref="/home" />
             </IonButtons>
@@ -175,25 +244,85 @@ const addAntecedent = async () => {
     <IonPage>
       <IonHeader>
         <IonToolbar>
+        <motion.div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: -1, // Placer l'arrière-plan en dessous du contenu
+                background: 'linear-gradient(50deg, #79a7d3, #79a7d3)', // Dégradé linéaire avec la couleur #79a7d3
+              }}
+              animate={{
+                backgroundPosition: ['0% 0%', '100% 100%'], // Animation du dégradé
+              }}
+              transition={{
+                duration: 10,
+                repeat: Infinity,
+                repeatType: 'loop', // Répétition infinie de l'animation
+                ease: 'linear',
+              }}
+            ></motion.div>
+     
           <IonButtons slot="start">
             <IonBackButton defaultHref="/home" />
           </IonButtons>
+          
           <IonTitle>Détails du Patiente</IonTitle>
         </IonToolbar>
       </IonHeader>
       <IonContent className="ion-padding">
       <motion.div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: -1, // Placer l'arrière-plan en dessous du contenu
+                background: 'linear-gradient(45deg, #ff6f61, #6a5acd)', // Exemple de fond dégradé
+                boxShadow: 'none'
+              
+         
+              }}
+            ></motion.div>
+      <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-        <IonButton expand="block" onClick={() => modalPatientDetails.current?.present()}>
-          Détails de {patient.nom} {patient.prenom}
-        </IonButton>
+      <IonButton
+  expand="block"
+  onClick={() => modalPatientDetails.current?.present()}>
+  Détails de {patient.nom} {patient.prenom}
+</IonButton>
         </motion.div>
         <IonModal ref={modalPatientDetails}>
           <IonHeader>
             <IonToolbar>
+            <motion.div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: -1, // Placer l'arrière-plan en dessous du contenu
+                background: 'linear-gradient(50deg, #79a7d3, #79a7d3)', // Dégradé linéaire avec la couleur #79a7d3
+              }}
+              animate={{
+                backgroundPosition: ['0% 0%', '100% 100%'], // Animation du dégradé
+              }}
+              transition={{
+                duration: 10,
+                repeat: Infinity,
+                repeatType: 'loop', // Répétition infinie de l'animation
+                ease: 'linear',
+              }}
+            ></motion.div>
+        
+
               <IonTitle>Détails du Patiente</IonTitle>
               <IonButtons slot="end" >
                 <IonButton onClick={dismissModalPatientDetails}><IonIcon icon={closeOutline} /></IonButton>
@@ -201,6 +330,22 @@ const addAntecedent = async () => {
             </IonToolbar>
           </IonHeader>
           <IonContent className="ion-padding">
+          <motion.div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: -1, // Placer l'arrière-plan en dessous du contenu
+                background: 'linear-gradient(45deg, #ff6f61, #6a5acd)', // Exemple de fond dégradé
+                boxShadow: 'none',
+                height: '120vh',
+              
+         
+              }}
+            ></motion.div>
+
            <IonItem>
          
            <IonInput label="Nom :" value= {patient.nom} readonly={true}></IonInput>
@@ -215,28 +360,13 @@ const addAntecedent = async () => {
               <IonLabel>Marie : {patient.marie}</IonLabel>
             </IonItem>
             <IonItem>
-              <IonLabel>Région : {patient.region}</IonLabel>
+              <IonLabel>CIN : {patient.cin}</IonLabel>
             </IonItem>
             <IonItem>
-              <IonLabel>District Sanitaire : {patient.district_sanitaire}</IonLabel>
+              <IonLabel>Profession : {patient.profession}</IonLabel>
             </IonItem>
             <IonItem>
-              <IonLabel>Formation Sanitaire : {patient.formation_sanitaire}</IonLabel>
-            </IonItem>
-            <IonItem>
-              <IonLabel>Niveau d'Instruction : {patient.niveau_instruction}</IonLabel>
-            </IonItem>
-            <IonItem>
-              <IonLabel>Profession de la Femme : {patient.profession_femme}</IonLabel>
-            </IonItem>
-            <IonItem>
-              <IonLabel>Profession du Mari : {patient.profession_mari}</IonLabel>
-            </IonItem>
-            <IonItem>
-              <IonLabel>Adresse : {patient.adresse}</IonLabel>
-            </IonItem>
-            <IonItem>
-              <IonLabel>Commune : {patient.commune}</IonLabel>
+              <IonLabel>Formation Sanitaire : {patient.adresse}</IonLabel>
             </IonItem>
             <IonItem>
               <IonLabel>Date du Dernier Accouchement : {patient.date_dernier_accouchement}</IonLabel>
@@ -245,19 +375,25 @@ const addAntecedent = async () => {
               <IonLabel>Nombre d'Enfants Vivants : {patient.nombre_enfants_vivants}</IonLabel>
             </IonItem>
             <IonItem>
-              <IonLabel>Gestité : {patient.gestite}</IonLabel>
-            </IonItem>
-            <IonItem>
-              <IonLabel>Parité : {patient.parite}</IonLabel>
-            </IonItem>
-            <IonItem>
               <IonLabel>DDR : {patient.ddr}</IonLabel>
             </IonItem>
             <IonItem>
               <IonLabel>DPA : {patient.dpa}</IonLabel>
             </IonItem>
             <IonItem>
-              <IonLabel>CPN1 : {patient.cpn1}</IonLabel>
+              <IonLabel>CPN : {patient.cpn}</IonLabel>
+            </IonItem>
+            <IonItem>
+              <IonLabel>Prestataire : {patient.prestataire}</IonLabel>
+            </IonItem>
+            <IonItem>
+              <IonLabel>Csb : {patient.csb}</IonLabel>
+            </IonItem>
+            <IonItem>
+              <IonLabel>Nbcpn : {patient.nbcpn}</IonLabel>
+            </IonItem>
+            <IonItem>
+              <IonLabel>CPN1 : {patient.cpn}</IonLabel>
             </IonItem>
             </IonContent>
          </IonModal>
@@ -273,7 +409,29 @@ const addAntecedent = async () => {
 </motion.div>
 <IonModal ref={modalAntecedents}>
   <IonHeader>
+    
     <IonToolbar>
+    <motion.div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: -1, // Placer l'arrière-plan en dessous du contenu
+                background: 'linear-gradient(50deg, #79a7d3, #79a7d3)', // Dégradé linéaire avec la couleur #79a7d3
+              }}
+              animate={{
+                backgroundPosition: ['0% 0%', '100% 100%'], // Animation du dégradé
+              }}
+              transition={{
+                duration: 10,
+                repeat: Infinity,
+                repeatType: 'loop', // Répétition infinie de l'animation
+                ease: 'linear',
+              }}
+            ></motion.div>
+        
       <IonTitle>Antécédents</IonTitle>
       <IonButtons slot="end">
         <IonButton onClick={dismissModalAntecedents}><IonIcon icon={closeOutline} /></IonButton>
@@ -281,7 +439,24 @@ const addAntecedent = async () => {
     </IonToolbar>
   </IonHeader>
   <IonContent className="ion-padding">
-  <IonGrid>
+  <IonGrid
+  
+  >
+    <motion.div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: -1, // Placer l'arrière-plan en dessous du contenu
+                background: 'linear-gradient(45deg, #ff6f61, #6a5acd)', // Exemple de fond dégradé
+                boxShadow: 'none',
+                height: '150vh',
+              
+         
+              }}
+            ></motion.div>
   {[
     { label: 'Age inférieur à 18 ans', field: 'ageInferieur18Ans' },
     { label: 'Age supérieur à 38 ans', field: 'ageSuperieur38Ans' },
@@ -340,10 +515,41 @@ const addAntecedent = async () => {
     <IonButton expand="full" onClick={handleSubmit}>
       {isAntecedentAdded ? 'Mettre à jour les antécédents' : 'Ajouter Antécédent'}
     </IonButton>
+
   </IonContent>
 </IonModal>
+<motion.div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: -1, // Placer l'arrière-plan en dessous du contenu
+                background: 'linear-gradient(45deg, #ff6f61, #6a5acd)', // Exemple de fond dégradé
+                boxShadow: 'none'
+              
+         
+              }}
+            ></motion.div>
+<IonCard >
+      <IonCardHeader>
+        <IonCardTitle>Progrès de la Grossesse</IonCardTitle>
+      </IonCardHeader>
+      <IonCardContent  style={{ background: 'transparent'}}>
+        <p><strong>Mois Atteint :</strong> {monthsPassed} mois</p>
+        <p><strong>Date Prévue d'Accouchement (DPA) :</strong> {patient.dpa}</p>
 
+        {/* Barre de progression */}
+        <IonProgressBar value={progress} color="success"></IonProgressBar>
+        <p style={{ textAlign: 'center' }}>{Math.round(progress * 100)}% de la grossesse complétée</p>
+      </IonCardContent>
+    </IonCard>
+   {/* Suivi Prénatal */}
+  
       </IonContent>
+
+      
     </IonPage>
   );
 };
